@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-electron/
+src/renderer/dist-electron/
+.env
+*.dmg
+*.exe
+*.AppImage
+.DS_Store
+Thumbs.db
+release/
+.omc/

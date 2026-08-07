@@ -1,0 +1,372 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #17171f;
+  color: #e6e6f0;
+  font-size: 14px;
+}
+
+/* ── App Shell (Sidebar + Main) — docs/02 §5-2 ───────────────── */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.electron-api-banner {
+  background: #3a2412;
+  border: 1px solid #facc15;
+  color: #facc15;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin: 20px 20px 0;
+  font-size: 13px;
+}
+.electron-api-banner code {
+  background: #17171f;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.app-main {
+  flex: 1;
+  overflow: auto;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: #1c1c27;
+  border-right: 1px solid #2c2c3c;
+  display: flex;
+  flex-direction: column;
+  padding: 0 12px 16px;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* 상단 패딩을 여기로 옮겼다(→ .sidebar가 아니라) — macOS titleBarStyle:'hiddenInset'에서
+     신호등 버튼과 겹치지 않으려면 여백뿐 아니라 "신호등 주변 클릭 드래그로 창 이동"도 되어야
+     하는데, drag 속성은 이 요소에만 걸려있어서 여백이 .sidebar 쪽에 있으면 정작 신호등 근처는
+     드래그 영역 밖이 된다 (v1.0, 사용자가 실사용 중 발견 — 패딩과 드래그 속성은 반드시 같은
+     요소에 있어야 한다). 인터랙티브 요소가 생기면 그 요소에는 -webkit-app-region: no-drag를
+     반드시 추가해야 클릭이 다시 먹는다.
+  */
+  padding: 40px 8px 20px;
+  -webkit-app-region: drag;
+}
+.logo-icon { font-size: 22px; }
+.logo-title { font-weight: 600; font-size: 14px; }
+.logo-version { font-size: 11px; color: #8888a0; }
+
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid #2c2c3c;
+  padding-top: 10px;
+}
+.nav-group:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #c4c4d6;
+  text-decoration: none;
+  font-size: 13px;
+  cursor: pointer;
+}
+.nav-item:hover {
+  background: #26263a;
+}
+.nav-item-active {
+  background: #33335a;
+  color: #fff;
+  font-weight: 600;
+}
+.nav-item-disabled {
+  color: #55556a;
+  cursor: not-allowed;
+}
+.nav-item-disabled:hover {
+  background: none;
+}
+.nav-icon {
+  width: 16px;
+  text-align: center;
+}
+
+.sidebar-footer {
+  border-top: 1px solid #2c2c3c;
+  padding-top: 10px;
+}
+
+/* ── 화면 공통 레이아웃 ───────────────────────────────────────── */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  /* 상단 패딩은 .top-bar가 직접 담당한다(아래) — 사이드바 로고와 같은 상단 오프셋(40px)을
+     맞춰야 두 영역이 같은 줄에 놓이고, 그 줄 전체를 창 드래그 영역으로 이어붙일 수 있다. */
+  padding: 0 20px 20px;
+  gap: 14px;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* 사이드바 로고(.sidebar-logo)와 동일한 40px 상단 오프셋 — 같은 줄에 정렬시키고, 이 줄 전체를
+     창 드래그 영역으로 만들기 위함 (v1.0, 사용자 요청). 버튼은 .top-bar-actions에서 no-drag 처리. */
+  padding-top: 40px;
+  -webkit-app-region: drag;
+}
+.top-bar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.top-bar-actions {
+  display: flex;
+  gap: 8px;
+  -webkit-app-region: no-drag; /* 버튼(재스캔/리포트 등)은 드래그 영역에서 제외해야 클릭이 먹는다 */
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.badge-ok { background: #163a2c; color: #4ade80; }
+.badge-warning { background: #3a2e12; color: #facc15; }
+.badge-critical { background: #3a1616; color: #f87171; }
+
+.path-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.path-bar-label {
+  font-size: 12px;
+  color: #8888a0;
+  min-width: 80px;
+}
+.path-value {
+  flex: 1;
+  font-family: monospace;
+}
+.path-input {
+  flex: 1;
+  background: #17171f;
+  border: 1px solid #3a3a52;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #e6e6f0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.card {
+  background: #21212f;
+  border: 1px solid #2c2c3c;
+  border-radius: 10px;
+  padding: 18px;
+}
+.card h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+/* ── 스캔 결과 리스트 ─────────────────────────────────────────── */
+.scan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.scan-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.scan-label {
+  flex: 1;
+  color: #c4c4d6;
+}
+.scan-value {
+  font-family: monospace;
+  color: #e6e6f0;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-ok { background: #4ade80; }
+.dot-warning { background: #facc15; }
+.dot-critical { background: #f87171; }
+
+/* ── AI 진단 카드 ─────────────────────────────────────────────── */
+.diagnosis-summary {
+  background: #1a2b3a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.issue-card {
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid;
+}
+.issue-critical { background: #2a1616; border-color: #f87171; }
+.issue-warning { background: #2a2412; border-color: #facc15; }
+.issue-info { background: #16222a; border-color: #60a5fa; }
+.issue-title {
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+}
+.issue-tag {
+  font-size: 10px;
+  opacity: 0.8;
+}
+.issue-desc {
+  font-size: 12px;
+  color: #b8b8c8;
+  margin-top: 4px;
+}
+.issue-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.issue-action input {
+  flex: 1;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+.issue-action button {
+  font-size: 12px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+/* ── 복구 타임라인 ────────────────────────────────────────────── */
+.recovery-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.timeline-item {
+  display: flex;
+  gap: 12px;
+}
+.timeline-marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  background: #33334a;
+  color: #c4c4d6;
+}
+.timeline-done .timeline-marker { background: #163a2c; color: #4ade80; }
+.timeline-running .timeline-marker { background: #1a2b4a; color: #60a5fa; }
+.timeline-error .timeline-marker { background: #3a1616; color: #f87171; }
+.timeline-label {
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timeline-message {
+  font-size: 12px;
+  color: #8888a0;
+  margin-top: 2px;
+}
+
+.severity-ok { color: #4ade80; }
+.severity-warning { color: #facc15; }
+.severity-critical { color: #f87171; }
+
+.action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.action-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.action-status {
+  font-size: 12px;
+  color: #8888a0;
+  margin-right: auto;
+}
+
+button {
+  background: #3a3a5a;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+}
+button:hover:not(:disabled) {
+  background: #4a4a7a;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input {
+  background: #17171f;
+  border: 1px solid #3a3a52;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #e6e6f0;
+}

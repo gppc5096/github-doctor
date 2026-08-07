@@ -1,0 +1,32 @@
+appId: com.bluebird.github-doctor
+productName: GitHub Doctor
+copyright: "Copyright © 2026 Bluebird"
+
+directories:
+  output: release
+
+files:
+  - dist/**
+  - src/main/**
+  - src/engine/**
+  - src/adapters/**
+  - src/shared/**
+  - package.json
+
+mac:
+  target: dmg
+  category: public.app-category.developer-tools
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+
+win:
+  target: nsis
+  publisherName: "Bluebird"
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+publish:
+  provider: github

@@ -1,0 +1,40 @@
+{
+  "name": "github-doctor",
+  "version": "0.1.0",
+  "description": "AI 기반 GitHub 인증 자동 진단 및 복구",
+  "main": "src/main/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && electron-builder",
+    "build:mac": "vite build && electron-builder --mac",
+    "build:win": "vite build && electron-builder --win",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "electron .",
+    "scan": "node src/engine/cli.js"
+  },
+  "build": {
+    "extends": "./electron-builder.yml"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
+    "electron": "^43.3.0",
+    "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.9",
+    "keytar": "^7.9.0",
+    "pinia": "^4.0.2",
+    "vue": "^3.5.41",
+    "vue-router": "^4.6.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.4.11",
+    "electron-builder": "^26.15.3",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "vite": "^8.2.0",
+    "vite-plugin-electron": "^1.1.1",
+    "vitest": "^4.1.10"
+  }
+}
