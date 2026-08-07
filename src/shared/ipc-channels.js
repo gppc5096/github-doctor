@@ -16,6 +16,7 @@ module.exports = {
   RECENT_PROJECTS_REMOVE: 'store:removeRecentProject',
   RECENT_PROJECTS_UPDATE_MEMO: 'store:updateRecentProjectMemo',
   RECOVERY_HISTORY_GET: 'store:getRecoveryHistory',
+  RECOVERY_HISTORY_CLEAR: 'store:clearRecoveryHistory',
   SETTINGS_GET: 'store:getSettings',
   SETTINGS_UPDATE: 'store:updateSettings',
   AI_KEY_SAVE: 'store:saveAiKey',

@@ -14,6 +14,10 @@ function registerStoreHandlers(ipcMain) {
     return appStore.getRecentProjects();
   });
   ipcMain.handle(CH.RECOVERY_HISTORY_GET, async () => appStore.getRecoveryHistory());
+  ipcMain.handle(CH.RECOVERY_HISTORY_CLEAR, async () => {
+    appStore.clearRecoveryHistory();
+    return appStore.getRecoveryHistory();
+  });
   ipcMain.handle(CH.SETTINGS_GET, async () => appStore.getSettings());
   ipcMain.handle(CH.SETTINGS_UPDATE, async (event, partial) => appStore.updateSettings(partial));
 

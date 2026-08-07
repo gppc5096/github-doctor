@@ -9,5 +9,8 @@ export const useHistoryStore = defineStore('history', {
     async load() {
       this.entries = await window.electronAPI.getRecoveryHistory();
     },
+    async clear() {
+      this.entries = await window.electronAPI.clearRecoveryHistory();
+    },
   },
 });

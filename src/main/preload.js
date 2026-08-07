@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeRecentProject: (path) => ipcRenderer.invoke('store:removeRecentProject', path),
   updateRecentProjectMemo: (path, memo) => ipcRenderer.invoke('store:updateRecentProjectMemo', { path, memo }),
   getRecoveryHistory: () => ipcRenderer.invoke('store:getRecoveryHistory'),
+  clearRecoveryHistory: () => ipcRenderer.invoke('store:clearRecoveryHistory'),
   getSettings: () => ipcRenderer.invoke('store:getSettings'),
   updateSettings: (partial) => ipcRenderer.invoke('store:updateSettings', partial),
   saveAiKey: (key) => ipcRenderer.invoke('store:saveAiKey', key),

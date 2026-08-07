@@ -69,6 +69,10 @@ function getRecoveryHistory({ store } = {}) {
   return getStore(store).get('recoveryHistory');
 }
 
+function clearRecoveryHistory({ store } = {}) {
+  getStore(store).set('recoveryHistory', []);
+}
+
 function getSettings({ store } = {}) {
   return getStore(store).get('settings');
 }
@@ -82,6 +86,6 @@ function updateSettings(partial, { store } = {}) {
 module.exports = {
   addRecentProject, getRecentProjects, removeRecentProject, updateRecentProjectMemo,
   addKnownAccount, getKnownAccounts,
-  addRecoveryHistoryEntry, getRecoveryHistory,
+  addRecoveryHistoryEntry, getRecoveryHistory, clearRecoveryHistory,
   getSettings, updateSettings,
 };

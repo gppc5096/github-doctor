@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   addRecentProject, getRecentProjects, removeRecentProject, updateRecentProjectMemo,
   addKnownAccount, getKnownAccounts,
-  addRecoveryHistoryEntry, getRecoveryHistory,
+  addRecoveryHistoryEntry, getRecoveryHistory, clearRecoveryHistory,
   getSettings, updateSettings,
 } from '../../src/engine/app-store.js';
 
@@ -85,6 +85,13 @@ describe('app-store (electron-store 래퍼, 실제 디스크 미접근)', () => 
     const list = getRecoveryHistory({ store });
     expect(list).toHaveLength(50);
     expect(list[0].id).toBe(54);
+  });
+
+  it('clearRecoveryHistory는 기록을 전부 비운다', () => {
+    addRecoveryHistoryEntry({ id: 1 }, { store });
+    addRecoveryHistoryEntry({ id: 2 }, { store });
+    clearRecoveryHistory({ store });
+    expect(getRecoveryHistory({ store })).toEqual([]);
   });
 
   it('updateSettings는 기존 설정에 병합한다', () => {
