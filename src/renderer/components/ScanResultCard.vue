@@ -4,7 +4,13 @@
     <ul v-if="items" class="scan-list">
       <li v-for="row in rows" :key="row.label" class="scan-row">
         <span :class="['dot', `dot-${row.severity}`]" />
-        <span class="scan-label">{{ row.label }}</span>
+        <span class="scan-label">
+          {{ row.label }}
+          <span v-if="row.hint" class="hint-icon" tabindex="0">
+            ⓘ
+            <span class="hint-tooltip">{{ row.hint }}</span>
+          </span>
+        </span>
         <span class="scan-value">{{ row.value }}</span>
       </li>
     </ul>
@@ -56,6 +62,9 @@ const rows = computed(() => {
       label: 'ssh-agent',
       value: it.sshAgent?.running ? `실행 중 (${it.sshAgent.keyCount}개)` : '미실행',
       severity: it.sshAgent?.severity ?? 'warning',
+      // 자동화하지 않고 가이드만 제공 (시니어 판단, TODO.md 참고): ~/.ssh/config를 앱이 직접
+      // 고치면 사용자의 다른 Host 설정을 건드릴 위험이 있어, 자동 설정 대신 안내로 대체함.
+      hint: 'SSH 키 암호를 매번 입력하지 않게 해주는 백그라운드 프로그램입니다. 꺼져 있어도 push는 막히지 않습니다 — SSH 키에 암호가 없거나 HTTPS로 인증한다면 무관합니다. 편의를 위해 켜고 싶다면 터미널에서:\nssh-add --apple-use-keychain ~/.ssh/id_ed25519',
     },
     { label: 'origin remote', value: it.origin?.value ?? '미연결', severity: it.origin?.severity ?? 'warning' },
     ...(identityRow || []),

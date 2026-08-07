@@ -314,6 +314,16 @@
   브라우저에 SSH+HTTPS 모두 있는 시나리오를 fake로 주입해 "SSH 사용"/"HTTPS 사용" 버튼이 실제로
   올바른 스텝(`set_origin_protocol`)과 선택값을 IPC로 전달하는 것까지 클릭으로 확인함.
 
+- [x] **ssh-agent 항목 호버 가이드 (2026-08-07, 사용자 질문 "이게 뭐고 어떻게 설정하나" → 시니어
+  판단: 자동화는 보류, 안내만).** ssh-agent 자동 설정(`~/.ssh/config` 수정)은 검토했으나, 사용자의
+  다른 `Host` 설정을 건드릴 위험이 있는 파일이라 자동화 대비 낮은 가치(`severity:warning`일 뿐
+  push를 막지 않음 — 암호 없는 키거나 HTTPS 인증이면 아예 무관)에 비해 리스크가 커서 보류로 판단.
+  대신 `ScanResultCard.vue`의 `ssh-agent` 행에 ⓘ 호버 아이콘을 추가해, 무엇인지·왜 안전한지·
+  켜고 싶으면 어떤 명령을 쓰면 되는지(`ssh-add --apple-use-keychain ~/.ssh/id_ed25519`)를
+  안내만 함(파일 수정·시스템 명령 실행 없음, 순수 UI). CSS만으로 구현(`.hint-icon`/`.hint-tooltip`,
+  새 JS 상태 없음), 마우스 호버와 키보드 포커스(`tabindex`) 둘 다 지원. 브라우저에서 호버 시 툴팁
+  내용까지 실제로 확인함.
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)
