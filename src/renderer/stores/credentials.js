@@ -7,6 +7,7 @@ export const useCredentialsStore = defineStore('credentials', {
   state: () => ({
     isSaving: false,
     isSettingHelper: false,
+    isDeleting: false,
     error: null,
     lastResult: null, // { ok, scopes, hasRepoScope } — 토큰 값 자체는 절대 담지 않음
   }),
@@ -35,6 +36,17 @@ export const useCredentialsStore = defineStore('credentials', {
         return result.ok;
       } finally {
         this.isSettingHelper = false;
+      }
+    },
+    async deleteCredential(account) {
+      this.isDeleting = true;
+      this.error = null;
+      try {
+        const result = await window.electronAPI.deleteCredential(account);
+        if (!result.ok) this.error = result.error;
+        return result.ok;
+      } finally {
+        this.isDeleting = false;
       }
     },
   },

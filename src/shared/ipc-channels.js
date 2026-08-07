@@ -11,6 +11,7 @@ module.exports = {
   DIALOG_SELECT_FOLDER: 'dialog:selectFolder',
   CREDENTIAL_SAVE: 'credential:save',
   CREDENTIAL_SET_HELPER: 'credential:setHelper',
+  CREDENTIAL_DELETE: 'credential:delete',
   RECENT_PROJECTS_GET: 'store:getRecentProjects',
   RECENT_PROJECTS_REMOVE: 'store:removeRecentProject',
   RECENT_PROJECTS_UPDATE_MEMO: 'store:updateRecentProjectMemo',

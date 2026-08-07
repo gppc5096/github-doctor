@@ -14,9 +14,17 @@
           <li v-for="cred in storedCreds" :key="cred.account" class="scan-row">
             <span class="dot dot-ok" />
             <span class="scan-label">{{ cred.account }} ({{ cred.server }})</span>
+            <button @click="pendingDelete = cred.account">삭제</button>
           </li>
         </ul>
       </div>
+
+      <ConfirmModal
+        v-if="pendingDelete"
+        :message="`'${pendingDelete}' 인증정보를 삭제하시겠습니까? push 시 이 계정을 더 이상 쓸 수 없게 됩니다.`"
+        @confirm="onConfirmDelete"
+        @cancel="pendingDelete = null"
+      />
 
       <div v-if="!credHelperOk" class="card">
         <h3>⚠️ credential.helper 미설정</h3>
@@ -46,6 +54,7 @@ import { ref, computed } from 'vue';
 import { useScanStore } from '../stores/scan';
 import { useCredentialsStore } from '../stores/credentials';
 import TopBar from '../components/TopBar.vue';
+import ConfirmModal from '../components/ConfirmModal.vue';
 
 // 이 컴포넌트가 하는 일: SCR-03 화면 조립만 — 검증/저장 로직은 store에, 실제 실행은
 // main 프로세스(pat-validator.js/pat-store.js)에 있다 (docs/03 §16).
@@ -55,6 +64,7 @@ const credStore = useCredentialsStore();
 const account = ref('');
 const token = ref('');
 const lastStatus = ref(null); // { ok, hasRepoScope } — 화면에 결과만 잠깐 보여주기 위함(토큰 아님)
+const pendingDelete = ref(null); // 삭제 확인 대기 중인 계정명 (null이면 모달 숨김)
 
 const storedCreds = computed(() => scanStore.scanResult?.items?.storedCreds ?? []);
 const credHelperOk = computed(() => !!scanStore.scanResult?.items?.credHelper?.ok);
@@ -81,5 +91,12 @@ async function onSave() {
   token.value = '';
   lastStatus.value = result;
   if (result?.ok) await scanStore.runScan(scanStore.projectPath); // 저장된 인증정보 목록 갱신
+}
+
+async function onConfirmDelete() {
+  const account = pendingDelete.value;
+  pendingDelete.value = null;
+  const ok = await credStore.deleteCredential(account);
+  if (ok) await scanStore.runScan(scanStore.projectPath); // 저장된 인증정보 목록 갱신
 }
 </script>

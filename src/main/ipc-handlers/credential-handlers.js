@@ -2,6 +2,7 @@ const { validatePat } = require('../../engine/pat-validator');
 const { storePatViaGitCredential } = require('../../engine/pat-store');
 const { setDefaultCredentialHelper } = require('../../engine/cred-helper-setup');
 const appStore = require('../../engine/app-store');
+const adapter = require('../../adapters');
 const CH = require('../../shared/ipc-channels');
 
 // 이 파일이 하는 일: PAT 저장 + credential.helper 설정 IPC만 (SCR-03, docs/03 §16).
@@ -33,6 +34,12 @@ function registerCredentialHandlers(ipcMain) {
     } catch (e) {
       return { ok: false, error: e.message };
     }
+  });
+
+  // 인증정보 관리 화면의 수동 삭제 (사용자 요청). wrong_cred 자동 복구가 이미 쓰던 것과 같은
+  // adapter.deleteCredential을 그대로 재사용 — 새 삭제 로직을 추가하지 않는다.
+  ipcMain.handle(CH.CREDENTIAL_DELETE, async (event, account) => {
+    return await adapter.deleteCredential(account);
   });
 }
 

@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
   saveCredential: (account, token) => ipcRenderer.invoke('credential:save', { account, token }),
   setDefaultCredentialHelper: () => ipcRenderer.invoke('credential:setHelper'),
+  deleteCredential: (account) => ipcRenderer.invoke('credential:delete', account),
   getRecentProjects: () => ipcRenderer.invoke('store:getRecentProjects'),
   removeRecentProject: (path) => ipcRenderer.invoke('store:removeRecentProject', path),
   updateRecentProjectMemo: (path, memo) => ipcRenderer.invoke('store:updateRecentProjectMemo', { path, memo }),
