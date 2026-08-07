@@ -67,7 +67,8 @@ src/
 │   └── views/
 │       ├── Dashboard.vue    # SCR-01 (docs/02 §5-2 와이어프레임 그대로 구현)
 │       ├── SshManager.vue     # SCR-04 (SSH 키 목록·생성·삭제·공개키 복사)
-│       └── CredentialManager.vue  # SCR-03 (PAT 등록 — 마스킹 입력, docs/03 §16)
+│       ├── CredentialManager.vue  # SCR-03 (PAT 등록 — 마스킹 입력, docs/03 §16)
+│       └── AccountManager.vue        # 계정 관리 (git user.name/email 수동 전환, fix_config 재사용)
 ├── engine/          # 진단·복구 엔진 (Node.js)
 │   ├── git-helper.js     # git/시스템 명령 실행 유틸
 │   ├── scanners/           # Phase 1: 9개 항목 자동 스캔 (항목별 파일 분리)
@@ -80,7 +81,7 @@ src/
 │   │   ├── index.js                 # 오케스트레이터 (push는 steps에 명시된 경우만 실행)
 │   │   ├── step-registry.js           # 스텝 id → 실행 함수 매핑
 │   │   ├── push-error-classifier.js     # push 실패 stderr → 원인 분류(6종) + 다음 행동
-│   │   └── steps/                       # fix-wrong-cred / fix-user-config / fix-origin / add-origin / gen-ssh-key / run-push
+│   │   └── steps/                       # fix-wrong-cred / fix-user-config / fix-origin / add-origin / set-origin-protocol / gen-ssh-key / run-push
 │   ├── pat-validator.js          # PAT 유효성 + repo 스코프 확인 (docs/03 §16)
 │   ├── pat-store.js                 # git credential approve로 PAT 저장 (stdin 전달, 로그 노출 없음)
 │   ├── cred-helper-setup.js            # credential.helper 플랫폼 기본값 설정
@@ -128,4 +129,4 @@ tests/
 - [x] v1.0 착수 — 복구 스텝들이 git 명령 실패를 확인 안 하고 항상 "성공" 반환하던 버그 수정 (사용자가 "진짜 실행되는지" 질문하며 발견): `add-origin`/`fix-origin`/`fix-user-config`/`fix-wrong-cred` 전부 결과 확인 후 실패 시 명확히 throw하도록 통일
 - [ ] v1.0 잔여 — 실제 QA(실계정) · 코드 서명 · 패키징 · 배포 (사용자 지시 필요)
 
-테스트 총 104개 통과 (`npm test`). 이후 로드맵과 알려진 한계는 `TODO.md`를 참고하세요.
+테스트 총 111개 통과 (`npm test`). 이후 로드맵과 알려진 한계는 `TODO.md`를 참고하세요.

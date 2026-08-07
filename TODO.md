@@ -272,6 +272,48 @@
   브라우저에서 credential.helper 미설정→설정 버튼→토큰 저장 성공(repo 스코프 확인됨 표시)→잘못된
   토큰 실패("토큰이 유효하지 않습니다") 전체 흐름을 마스킹 입력 확인과 함께 실제로 클릭해서 검증함.
 
+> ℹ️ **v1.1: 첫 실계정 push 성공 (2026-08-07) — 실사용 중 발견한 부작용 1건.** 사용자가 실제로
+> `US_Monthly_Dividend_ETF` 저장소에 PAT 저장 → 자동 복구(origin 자동 전환 + push)까지 실행해
+> 실제 push에 성공함(SSH 계정 불일치 문제의 최종 해결 확인). 이 프로젝트(github-doctor) 자체도
+> `docs/00-Github-Info.txt` 참고해 `git init` + 첫 커밋 + `gppc5096` 계정으로 실제 push 완료.
+> **부작용**: push 권한(PAT 인증)과 커밋 작성자 정보(`user.name`/`user.email`)는 완전히 별개라서,
+> 이 프로젝트의 로컬 git 설정이 예전 개인 계정(Najongchoon/najongchoon@gmail.com) 값 그대로였던
+> 탓에 GitHub 화면에는 커밋이 gppc5096이 아니라 그 계정으로 표시됨. 이미 올라간 첫 커밋은 그대로
+> 두기로 하고(히스토리 재작성/force-push는 하지 않음), 이 프로젝트의 `user.name`/`user.email`만
+> `--local`로 gppc5096/실제 이메일로 정정해 이후 커밋부터 정확히 표시되게 함.
+
+- [x] **"계정 관리" 화면 — git 계정 수동 전환 (2026-08-07, 위 부작용을 겪은 뒤 사용자 요청).**
+  바로 위 문제(로컬 git 정체성이 실제 쓰려는 GitHub 계정과 다른 걸 몰랐던 것)를 다시 안 겪도록,
+  사이드바에 이미 자리만 있던 "계정 관리"(비활성)를 구현. 현재 프로젝트의 `user.name`/`user.email`
+  (local/global)을 보여주고, 사용자가 직접 입력해 `--local` 값을 바꿀 수 있음. **신규 엔진 로직
+  없음** — 이미 구현·테스트된 `fix_config` 복구 스텝(`fix-user-config.js`)을
+  `recoveryStore.runStep()`으로 그대로 재사용(코드 재사용으로 새 버그 표면적을 늘리지 않음).
+  스코프는 "수동 전환"까지만 — "이 이메일이 어느 GitHub 계정 것인지 자동으로 판별해서 경고"하는
+  기능은 GitHub API 인증이 추가로 필요해 범위가 커져 다음 버전으로 미룸(사용자 확인, Yes).
+  신규 `AccountManager.vue`(라우터 `/account`), 사이드바 활성화. 새 엔진 코드가 없어 별도 단위
+  테스트는 추가하지 않음(기존 `fix_config` 테스트가 이미 이 로직을 커버).
+
+- [x] **"SSH+HTTPS 둘 다 있을 때 사용자가 선택하게 하는 UI" (2026-08-07, 사용자 요청 — commit
+  작성자 계정 혼선을 겪은 뒤 "이 사고를 막으려면 어느 쪽을 쓸지 직접 고를 수 있어야 한다"는 취지).**
+  기존 `detectCorrectOrigin()`(§ fix_origin)은 SSH 키/HTTPS 인증정보 중 **한쪽만** 있을 때만
+  자동 전환하고, 둘 다 있으면 "어느 쪽이 맞는지 추측할 수 없다"며 일부러 손을 뗀다(`correctOrigin`
+  이 `null`로 남음) — 그 애매한 상태를 방치하지 않고 사용자가 직접 고르게 하는 것이 이번 기능.
+  **신규**: 규칙 10 `origin-choice.js`(`hasSshKey && hasHttpsAuth`이고 `ctx.correctOrigin`이
+  없을 때만 발동, `severity:'info'` — 문제가 아니라 선택지 안내라는 의미), 복구 스텝
+  `set-origin-protocol.js`(사용자가 고른 프로토콜로 `git remote set-url` 실행, 기존
+  `convertOriginProtocol()` 재사용, `fix_origin`과 달리 "무엇이 맞는지" 추측하지 않고 사용자가
+  준 값을 그대로 적용). **이슈 액션에 새 타입 `choice` 추가**(기존 openUrl/navigate/input/rescan에
+  이어 5번째 — 여러 선택지 버튼을 렌더링, `IssueItem.vue`의 `applyStep()` 공통 헬퍼로 `input`과
+  로직 공유해 중복 없앰). 단위 테스트 7개(origin-choice 규칙 2 + set-origin-protocol 스텝 5) 추가.
+  > ⚠️ **기존 통합 테스트 "문제 없음" 픽스처가 이번에도 걸림 (fix_origin 때와 같은 패턴, TODO.md
+  > 앞부분 참고)**: SSH 키 + HTTPS credential.helper가 동시에 있는 픽스처였는데, 이제 그게 정확히
+  > origin_choice가 잡아야 하는 "진짜 애매한 상태" 그 자체라 오히려 규칙이 정상 동작한다는 증거였음.
+  > 픽스처를 "SSH만 쓰는 시나리오"(origin도 SSH로, credential.helper 없음)로 수정해 진짜 문제
+  > 0건 케이스로 되돌림 — origin이 SSH가 되면서 scanner가 `ssh-identity` 체크(실제 `ssh` 호출)를
+  > 새로 타므로, `runDetailed`를 fake로 명시 주입해 실제 네트워크/SSH 호출을 막음.
+  브라우저에 SSH+HTTPS 모두 있는 시나리오를 fake로 주입해 "SSH 사용"/"HTTPS 사용" 버튼이 실제로
+  올바른 스텝(`set_origin_protocol`)과 선택값을 IPC로 전달하는 것까지 클릭으로 확인함.
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)

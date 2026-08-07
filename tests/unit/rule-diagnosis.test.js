@@ -187,6 +187,54 @@ describe('규칙 기반 진단 엔진', () => {
     expect(unknown.issues.find((i) => i.id === 'wrong_ssh_account')).toBeUndefined();
   });
 
+  // v1.1 (2026-08-07, 사용자 요청): SSH 키와 HTTPS 인증정보가 둘 다 있으면 fix_origin이
+  // 자동 판단을 포기하는데(ctx.correctOrigin===null), 그 애매한 상태를 사용자가 고르게 안내한다.
+  it('규칙 10: SSH 키와 HTTPS 인증정보가 둘 다 있으면 origin_choice(guide, info)로 진단한다', () => {
+    const scanResult = {
+      items: {
+        gitInstalled: { ok: true },
+        storedCreds: [{ account: 'gppc5096', isWrong: false }],
+        sshKeys: [{ file: 'id_ed25519.pub', isDSA: false }],
+        origin: { value: 'git@github.com:gppc5096/repo.git', protocol: 'SSH' },
+        credHelper: { ok: true },
+        githubConn: { ok: true },
+        userName: { active: 'gppc5096' },
+        userEmail: { active: 'tester@example.com' },
+      },
+    };
+    const result = ruleDiagnose(scanResult);
+    const issue = result.issues.find((i) => i.id === 'origin_choice');
+    expect(issue).toBeDefined();
+    expect(issue.severity).toBe('info');
+    expect(issue.autoFixable).toBe(false);
+    expect(issue.action).toEqual({
+      type: 'choice', label: '방식 선택',
+      options: [
+        { label: 'SSH 사용', value: 'ssh' },
+        { label: 'HTTPS 사용', value: 'https' },
+      ],
+      step: 'set_origin_protocol', contextKey: 'desiredProtocol',
+    });
+    expect(result.recoveryPlan).not.toContain('origin_choice');
+  });
+
+  it('규칙 10: 한쪽만 있으면(SSH만) origin_choice를 진단하지 않는다', () => {
+    const scanResult = {
+      items: {
+        gitInstalled: { ok: true },
+        storedCreds: [],
+        sshKeys: [{ file: 'id_ed25519.pub', isDSA: false }],
+        origin: { value: 'git@github.com:gppc5096/repo.git', protocol: 'SSH' },
+        credHelper: { ok: false },
+        githubConn: { ok: true },
+        userName: { active: 'tester' },
+        userEmail: { active: 'tester@example.com' },
+      },
+    };
+    const result = ruleDiagnose(scanResult);
+    expect(result.issues.find((i) => i.id === 'origin_choice')).toBeUndefined();
+  });
+
   it('DSA 키를 감지하면 semi(non-autoFixable)로 진단한다', () => {
     const scanResult = {
       items: {

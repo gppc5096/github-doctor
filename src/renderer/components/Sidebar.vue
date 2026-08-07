@@ -12,7 +12,7 @@
       <div class="nav-group">
         <NavItem to="/" label="진단 대시보드" icon="✧" />
         <NavItem label="프로젝트 선택" icon="📁" disabled />
-        <NavItem label="계정 관리" icon="👤" disabled />
+        <NavItem to="/account" label="계정 관리" icon="👤" />
       </div>
       <div class="nav-group">
         <NavItem to="/ssh" label="SSH 키 관리" icon="🔑" />

@@ -4,6 +4,7 @@ const checkWrongCred = require('./rules/wrong-cred');
 const checkNoSsh = require('./rules/no-ssh');
 const checkDsaKey = require('./rules/dsa-key');
 const checkOrigin = require('./rules/origin-check');
+const checkOriginChoice = require('./rules/origin-choice');
 const checkWrongSshAccount = require('./rules/wrong-ssh-account');
 const checkNoNetwork = require('./rules/no-network');
 const checkFixConfig = require('./rules/fix-config');
@@ -18,7 +19,7 @@ const checkFixConfig = require('./rules/fix-config');
 //   - input:    { type:'input', label, placeholder, step }   → 값을 입력받아 해당 스텝 실행
 //   - rescan:   { type:'rescan', label }                     → 재스캔 트리거
 const rules = [
-  checkNoGit, checkWrongCred, checkNoSsh, checkDsaKey, checkOrigin,
+  checkNoGit, checkWrongCred, checkNoSsh, checkDsaKey, checkOrigin, checkOriginChoice,
   checkWrongSshAccount, checkNoNetwork, checkFixConfig,
 ];
 

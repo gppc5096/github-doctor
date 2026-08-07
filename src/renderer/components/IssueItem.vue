@@ -22,6 +22,11 @@
           {{ busy ? '처리 중...' : issue.action.label }}
         </button>
       </template>
+      <template v-else-if="issue.action.type === 'choice'">
+        <button v-for="opt in issue.action.options" :key="opt.value" :disabled="busy" @click="handleChoice(opt.value)">
+          {{ busy ? '처리 중...' : opt.label }}
+        </button>
+      </template>
     </div>
     <p v-if="actionError" class="severity-critical">{{ actionError }}</p>
   </div>
@@ -35,7 +40,7 @@ import { useRecoveryStore } from '../stores/recovery';
 
 // 이 컴포넌트가 하는 일: 진단 이슈 하나 표시 + 그 이슈의 "다음 행동" 버튼/입력창 처리만.
 // action.type별 처리는 docs 없이 여기 코드가 그대로 스펙이다 (v1.0, TODO.md 설계 참고):
-//   openUrl / navigate / rescan / input
+//   openUrl / navigate / rescan / input / choice(v1.1, 여러 선택지 중 하나를 스텝 컨텍스트로 전달)
 const props = defineProps({
   issue: { type: Object, required: true },
 });
@@ -61,13 +66,14 @@ function handleNavigate() {
   router.push(props.issue.action.to);
 }
 
-async function handleInputApply() {
+// input/choice 둘 다 "값 하나를 스텝 컨텍스트로 넘겨 즉석 실행"이라 공통 로직을 공유한다.
+async function applyStep(value) {
   actionError.value = '';
   busy.value = true;
   try {
     const { step, contextKey } = props.issue.action;
     await recoveryStore.runStep(step, {
-      [contextKey]: inputValue.value,
+      [contextKey]: value,
       projectPath: scanStore.projectPath,
     });
     emit('rescan'); // 상태가 바뀌었으니 다시 스캔해서 최신 결과를 보여준다
@@ -77,4 +83,7 @@ async function handleInputApply() {
     busy.value = false;
   }
 }
+
+const handleInputApply = () => applyStep(inputValue.value);
+const handleChoice = (value) => applyStep(value);
 </script>

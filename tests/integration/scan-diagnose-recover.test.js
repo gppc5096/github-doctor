@@ -77,16 +77,21 @@ describe('통합: 스캔 → 진단 → 복구 → push (전부 fake, 실제 환
   });
 
   it('문제가 없으면 진단 단계에서 빈 recoveryPlan을 반환하고 복구를 실행할 필요가 없다', async () => {
+    // SSH 키만 있고 HTTPS 인증 수단(credential.helper)은 없는 시나리오로 고정한다 — 둘 다
+    // 있으면 v1.1 origin_choice 규칙이 "선택 가능" 안내를 정당하게 띄우므로, 진짜 "문제 0건"을
+    // 확인하려면 SSH만 쓰는 쪽으로 모호함 자체를 없애야 한다(origin도 SSH로 맞춤).
     const fakeGit = (cmd) => {
       if (cmd.includes('user.name')) return 'tester';
       if (cmd.includes('user.email')) return 'tester@example.com';
-      if (cmd.includes('remote get-url origin')) return 'https://github.com/test/repo.git';
-      if (cmd.includes('credential.helper')) return 'osxkeychain'; // HTTPS 인증 수단 있음 → 프로토콜 불일치 아님
-      return null;
+      if (cmd.includes('remote get-url origin')) return 'git@github.com:test/repo.git';
+      return null; // credential.helper 미설정 — SSH만 쓰는 시나리오
     };
     const scanResult = await runScan('/tmp/dummy-repo', {
       git: fakeGit,
       run: (cmd) => (cmd === 'git --version' ? 'git version 2.50.1' : null),
+      // origin이 SSH이므로 scanner가 ssh-identity 체크를 실행한다 — 실제 ssh 호출을 막기 위해
+      // 항상 fake로 주입하고, origin 소유자(test)와 일치하는 응답을 줘서 wrong_ssh_account도 안 뜨게 한다.
+      runDetailed: () => ({ ok: false, stdout: '', stderr: "Hi test! You've successfully authenticated, but GitHub does not provide shell access." }),
       getStoredCredentials: async () => [],
       fs: { existsSync: () => true, readdirSync: () => ['id_ed25519.pub'] },
       fetchFn: async () => ({ ok: true, status: 200 }),
