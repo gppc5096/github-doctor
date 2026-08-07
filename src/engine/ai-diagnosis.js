@@ -36,8 +36,10 @@ async function runDiagnose(scanResult, deps = {}) {
     return parseAIResponse(raw, scanResult);
   } catch (e) {
     // 3. API 실패 시 규칙 기반 폴백 (docs/03 §0-3 원칙: AI 응답 의존 최소화)
+    // 원인을 메인 프로세스 콘솔에만 남기면 사용자는 절대 못 본다(실사용 중 발견 — "키는
+    // 유효한데 왜 규칙 기반으로 돌아가는지" 알 방법이 없었음) — 진단 결과에 실어서 화면에도 보이게 한다.
     console.warn('AI 진단 실패, 규칙 기반으로 전환:', e.message);
-    return ruleDiagnose(scanResult);
+    return { ...ruleDiagnose(scanResult), _aiFallbackReason: e.message };
   }
 }
 
@@ -87,7 +89,7 @@ function parseAIResponse(raw, scanResult) {
     return { source: 'ai', ...rest, _context: mergedContext };
   } catch (e) {
     console.warn('AI 응답 JSON 파싱 실패, 규칙 기반으로 전환:', e.message);
-    return ruleDiagnose(scanResult);
+    return { ...ruleDiagnose(scanResult), _aiFallbackReason: `AI 응답 파싱 실패: ${e.message}` };
   }
 }
 

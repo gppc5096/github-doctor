@@ -5,6 +5,9 @@
     <p v-else-if="isDiagnosing">진단 중...</p>
     <p v-else-if="!diagnosis">진단 대기 중...</p>
     <template v-else>
+      <p v-if="diagnosis._aiFallbackReason" class="severity-warning">
+        ⚠️ AI 진단 실패 — {{ diagnosis._aiFallbackReason }} (규칙 기반으로 대체됨)
+      </p>
       <p class="diagnosis-summary">{{ diagnosis.summary }}</p>
       <IssueItem v-for="issue in diagnosis.issues" :key="issue.id" :issue="issue" @rescan="$emit('rescan')" />
     </template>

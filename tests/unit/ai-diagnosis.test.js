@@ -75,7 +75,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
     expect(result._context.targetEmail).toBe('tester@example.com');
   });
 
-  it('AI 호출이 실패(예외)하면 규칙 기반으로 폴백한다', async () => {
+  it('AI 호출이 실패(예외)하면 규칙 기반으로 폴백하고, 실패 사유를 화면에 보여줄 수 있게 실어 보낸다', async () => {
     const fakeClient = {
       messages: {
         create: async () => {
@@ -88,9 +88,11 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
       createClient: () => fakeClient,
     });
     expect(result.source).toBe('rule');
+    // 실사용 중 발견: 실패 사유가 메인 프로세스 콘솔에만 남으면 사용자는 원인을 알 방법이 없었음.
+    expect(result._aiFallbackReason).toBe('네트워크 오류 (시뮬레이션)');
   });
 
-  it('AI 응답이 JSON이 아니면 규칙 기반으로 폴백한다', async () => {
+  it('AI 응답이 JSON이 아니면 규칙 기반으로 폴백하고, 파싱 실패 사유를 실어 보낸다', async () => {
     const fakeClient = {
       messages: {
         create: async () => ({ content: [{ text: '이건 JSON이 아닙니다' }] }),
@@ -101,6 +103,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
       createClient: () => fakeClient,
     });
     expect(result.source).toBe('rule');
+    expect(result._aiFallbackReason).toContain('AI 응답 파싱 실패');
   });
 
   it('마크다운 코드펜스로 감싼 JSON도 정상 파싱한다', async () => {
