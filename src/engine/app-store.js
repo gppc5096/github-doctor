@@ -21,8 +21,11 @@ function getStore(store) {
 
 function addRecentProject(entry, { store } = {}) {
   const s = getStore(store);
-  const list = s.get('recentProjects').filter((p) => p.path !== entry.path);
-  s.set('recentProjects', [entry, ...list].slice(0, MAX_RECENT_PROJECTS));
+  const all = s.get('recentProjects');
+  // 재스캔으로 같은 경로 항목을 다시 추가할 때, 사용자가 적어둔 메모가 지워지면 안 된다.
+  const existingMemo = all.find((p) => p.path === entry.path)?.memo ?? '';
+  const list = all.filter((p) => p.path !== entry.path);
+  s.set('recentProjects', [{ memo: existingMemo, ...entry }, ...list].slice(0, MAX_RECENT_PROJECTS));
 }
 
 function getRecentProjects({ store } = {}) {
@@ -32,6 +35,12 @@ function getRecentProjects({ store } = {}) {
 function removeRecentProject(path, { store } = {}) {
   const s = getStore(store);
   s.set('recentProjects', s.get('recentProjects').filter((p) => p.path !== path));
+}
+
+function updateRecentProjectMemo(path, memo, { store } = {}) {
+  const s = getStore(store);
+  const list = s.get('recentProjects').map((p) => (p.path === path ? { ...p, memo } : p));
+  s.set('recentProjects', list);
 }
 
 function addRecoveryHistoryEntry(entry, { store } = {}) {
@@ -55,7 +64,7 @@ function updateSettings(partial, { store } = {}) {
 }
 
 module.exports = {
-  addRecentProject, getRecentProjects, removeRecentProject,
+  addRecentProject, getRecentProjects, removeRecentProject, updateRecentProjectMemo,
   addRecoveryHistoryEntry, getRecoveryHistory,
   getSettings, updateSettings,
 };

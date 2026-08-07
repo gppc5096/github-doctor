@@ -16,7 +16,15 @@
           @click="onSelect(p.path)"
         >
           <span :class="['dot', `dot-${dotSeverity(p.worstSeverity)}`]" />
-          <span class="scan-label">{{ projectName(p.path) }}</span>
+          <span class="scan-label" style="flex: 0 0 auto">{{ projectName(p.path) }}</span>
+          <input
+            v-model="memoDrafts[p.path]"
+            class="memo-input"
+            placeholder="메모 추가..."
+            @click.stop
+            @keyup.enter="saveMemo(p.path)"
+            @blur="saveMemo(p.path)"
+          />
           <span class="scan-value">
             {{ timeAgo(p.lastScanAt) }} · {{ statusLabel(p) }}
             <button @click.stop="requestDelete(p.path)">삭제</button>
@@ -35,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useScanStore } from '../stores/scan';
 import { useDiagnosisStore } from '../stores/diagnosis';
@@ -52,8 +60,22 @@ const projectsStore = useProjectsStore();
 
 const path = ref('');
 const pendingDelete = ref(null); // 삭제 확인 대기 중인 프로젝트 경로 (null이면 모달 숨김)
+const memoDrafts = reactive({}); // path → 입력 중인 메모 (저장된 값과 별개로 편집 중 상태 유지)
 
-onMounted(() => projectsStore.load());
+onMounted(async () => {
+  await projectsStore.load();
+  syncMemoDrafts();
+});
+
+// 이미 편집 중인(로컬에만 있는) 값은 덮어쓰지 않는다 — 목록이 갱신돼도 입력하던 내용이 안 사라지게.
+function syncMemoDrafts() {
+  for (const p of projectsStore.recentProjects) {
+    if (!(p.path in memoDrafts)) memoDrafts[p.path] = p.memo ?? '';
+  }
+}
+function saveMemo(projectPath) {
+  projectsStore.updateMemo(projectPath, memoDrafts[projectPath] ?? '');
+}
 
 function requestDelete(projectPath) {
   pendingDelete.value = projectPath;

@@ -12,5 +12,8 @@ export const useProjectsStore = defineStore('projects', {
     async remove(path) {
       this.recentProjects = await window.electronAPI.removeRecentProject(path);
     },
+    async updateMemo(path, memo) {
+      this.recentProjects = await window.electronAPI.updateRecentProjectMemo(path, memo);
+    },
   },
 });

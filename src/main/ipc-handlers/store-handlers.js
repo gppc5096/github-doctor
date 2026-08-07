@@ -9,6 +9,10 @@ function registerStoreHandlers(ipcMain) {
     appStore.removeRecentProject(path);
     return appStore.getRecentProjects();
   });
+  ipcMain.handle(CH.RECENT_PROJECTS_UPDATE_MEMO, async (event, { path, memo }) => {
+    appStore.updateRecentProjectMemo(path, memo);
+    return appStore.getRecentProjects();
+  });
   ipcMain.handle(CH.RECOVERY_HISTORY_GET, async () => appStore.getRecoveryHistory());
   ipcMain.handle(CH.SETTINGS_GET, async () => appStore.getSettings());
   ipcMain.handle(CH.SETTINGS_UPDATE, async (event, partial) => appStore.updateSettings(partial));

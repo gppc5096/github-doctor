@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  addRecentProject, getRecentProjects, removeRecentProject,
+  addRecentProject, getRecentProjects, removeRecentProject, updateRecentProjectMemo,
   addRecoveryHistoryEntry, getRecoveryHistory,
   getSettings, updateSettings,
 } from '../../src/engine/app-store.js';
@@ -27,7 +27,23 @@ describe('app-store (electron-store 래퍼, 실제 디스크 미접근)', () => 
     addRecentProject({ path: '/a', lastScanAt: 't2', issueCount: 0 }, { store });
     const list = getRecentProjects({ store });
     expect(list).toHaveLength(1);
-    expect(list[0]).toEqual({ path: '/a', lastScanAt: 't2', issueCount: 0 });
+    expect(list[0]).toEqual({ path: '/a', lastScanAt: 't2', issueCount: 0, memo: '' });
+  });
+
+  it('재스캔으로 같은 경로를 다시 추가해도 기존에 적어둔 메모는 지워지지 않는다', () => {
+    addRecentProject({ path: '/a', lastScanAt: 't1' }, { store });
+    updateRecentProjectMemo('/a', '주택관리를 위한 앱', { store });
+    addRecentProject({ path: '/a', lastScanAt: 't2', issueCount: 1 }, { store }); // 재스캔
+    expect(getRecentProjects({ store })[0].memo).toBe('주택관리를 위한 앱');
+  });
+
+  it('updateRecentProjectMemo는 해당 경로의 메모만 바꾸고 다른 필드는 그대로 둔다', () => {
+    addRecentProject({ path: '/a', lastScanAt: 't1', issueCount: 2 }, { store });
+    updateRecentProjectMemo('/a', '메모 내용', { store });
+    const entry = getRecentProjects({ store })[0];
+    expect(entry.memo).toBe('메모 내용');
+    expect(entry.lastScanAt).toBe('t1');
+    expect(entry.issueCount).toBe(2);
   });
 
   it('removeRecentProject는 해당 경로만 제거하고 나머지는 그대로 둔다', () => {
