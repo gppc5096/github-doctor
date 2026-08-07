@@ -188,4 +188,68 @@ describe('scanner.runScan (DI로 실제 환경 완전 차단)', () => {
     await runScan('/tmp/dummy-repo', deps);
     expect(receivedOptions.candidateAccounts).toEqual(['gppc5096']);
   });
+
+  // v1.1 (2026-08-07, 사용자가 실사용 중 발견): PAT로만 등록한 계정(SSH 키 없음)은 SSH 키 파일명
+  // 기반 candidateAccounts에 절대 안 잡혀서, 실제로 Keychain에 저장돼 있어도 스캔 결과에서
+  // 영영 안 보이는 문제가 있었다 — getKnownAccounts(PAT 저장 시 기록해둔 계정 목록)를 SSH 후보와
+  // 합쳐서 이 사각지대를 없앤다.
+  it('SSH 키 후보와 알려진 계정(getKnownAccounts)을 합쳐서 candidateAccounts로 넘긴다', async () => {
+    let receivedOptions;
+    const deps = {
+      run: (cmd) => (cmd === 'git --version' ? 'git version 2.50.1' : null),
+      git: () => null,
+      getStoredCredentials: async (options) => {
+        receivedOptions = options;
+        return [];
+      },
+      getKnownAccounts: () => ['jongchoon580325'],
+      fs: {
+        existsSync: () => true,
+        readdirSync: () => ['id_ed25519_gppc5096.pub'],
+      },
+      fetchFn: async () => ({ ok: true, status: 200 }),
+    };
+
+    await runScan('/tmp/dummy-repo', deps);
+    expect(receivedOptions.candidateAccounts.sort()).toEqual(['gppc5096', 'jongchoon580325']);
+  });
+
+  it('같은 계정이 SSH 후보와 알려진 계정 양쪽에 있어도 중복 없이 한 번만 넘긴다', async () => {
+    let receivedOptions;
+    const deps = {
+      run: (cmd) => (cmd === 'git --version' ? 'git version 2.50.1' : null),
+      git: () => null,
+      getStoredCredentials: async (options) => {
+        receivedOptions = options;
+        return [];
+      },
+      getKnownAccounts: () => ['gppc5096'],
+      fs: { existsSync: () => true, readdirSync: () => ['id_ed25519_gppc5096.pub'] },
+      fetchFn: async () => ({ ok: true, status: 200 }),
+    };
+
+    await runScan('/tmp/dummy-repo', deps);
+    expect(receivedOptions.candidateAccounts).toEqual(['gppc5096']);
+  });
+
+  it('getKnownAccounts가 실패해도(예: Electron 컨텍스트 밖) 스캔 자체는 계속 진행된다', async () => {
+    let receivedOptions;
+    const deps = {
+      run: (cmd) => (cmd === 'git --version' ? 'git version 2.50.1' : null),
+      git: () => null,
+      getStoredCredentials: async (options) => {
+        receivedOptions = options;
+        return [];
+      },
+      getKnownAccounts: () => {
+        throw new Error('Electron 컨텍스트 밖 시뮬레이션');
+      },
+      fs: { existsSync: () => true, readdirSync: () => ['id_ed25519_gppc5096.pub'] },
+      fetchFn: async () => ({ ok: true, status: 200 }),
+    };
+
+    const result = await runScan('/tmp/dummy-repo', deps);
+    expect(result.items.gitInstalled.ok).toBe(true);
+    expect(receivedOptions.candidateAccounts).toEqual(['gppc5096']);
+  });
 });

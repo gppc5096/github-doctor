@@ -14,7 +14,9 @@ let realStore = null;
 function getStore(store) {
   if (store) return store;
   if (!realStore) {
-    realStore = new nodeElectronStore({ defaults: { recentProjects: [], recoveryHistory: [], settings: {} } });
+    realStore = new nodeElectronStore({
+      defaults: { recentProjects: [], recoveryHistory: [], settings: {}, knownAccounts: [] },
+    });
   }
   return realStore;
 }
@@ -43,6 +45,20 @@ function updateRecentProjectMemo(path, memo, { store } = {}) {
   s.set('recentProjects', list);
 }
 
+// SSH 키 파일명(id_ed25519_<account>)만으로는 PAT로만 등록한 계정을 알 수 없다 — Keychain은
+// "이 서비스로 저장된 모든 계정"을 나열하는 안전한 방법이 없어서, 후보 계정을 최대한 넓혀야
+// 스캔이 실제로 존재하는 계정을 놓치지 않는다 (실사용 중 발견: PAT만 등록한 계정이 스캔 결과에
+// 아예 안 보이던 문제 — scanners/index.js가 이 목록을 candidateAccounts에 합쳐서 쓴다).
+function addKnownAccount(account, { store } = {}) {
+  const s = getStore(store);
+  const list = s.get('knownAccounts') ?? [];
+  if (!list.includes(account)) s.set('knownAccounts', [...list, account]);
+}
+
+function getKnownAccounts({ store } = {}) {
+  return getStore(store).get('knownAccounts') ?? [];
+}
+
 function addRecoveryHistoryEntry(entry, { store } = {}) {
   const s = getStore(store);
   const list = s.get('recoveryHistory');
@@ -65,6 +81,7 @@ function updateSettings(partial, { store } = {}) {
 
 module.exports = {
   addRecentProject, getRecentProjects, removeRecentProject, updateRecentProjectMemo,
+  addKnownAccount, getKnownAccounts,
   addRecoveryHistoryEntry, getRecoveryHistory,
   getSettings, updateSettings,
 };

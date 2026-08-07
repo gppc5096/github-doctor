@@ -1,6 +1,7 @@
 const { validatePat } = require('../../engine/pat-validator');
 const { storePatViaGitCredential } = require('../../engine/pat-store');
 const { setDefaultCredentialHelper } = require('../../engine/cred-helper-setup');
+const appStore = require('../../engine/app-store');
 const CH = require('../../shared/ipc-channels');
 
 // 이 파일이 하는 일: PAT 저장 + credential.helper 설정 IPC만 (SCR-03, docs/03 §16).
@@ -12,6 +13,15 @@ function registerCredentialHandlers(ipcMain) {
 
     const stored = storePatViaGitCredential(account, token);
     if (!stored.ok) return { ok: false, error: `저장 실패: ${stored.stderr}` };
+
+    // SSH 키가 없는 계정(PAT로만 등록)은 스캔의 candidateAccounts(SSH 키 파일명 기반)에 절대
+    // 안 잡혀서, 실제로는 Keychain에 저장돼 있어도 스캔 결과에 영영 안 보일 수 있다 — 실사용
+    // 중 발견. 여기 기록해두면 scanners/index.js가 SSH 후보와 합쳐서 확인 대상에 포함시킨다.
+    try {
+      appStore.addKnownAccount(account);
+    } catch (e) {
+      console.warn('알려진 계정 기록 실패:', e.message);
+    }
 
     return { ok: true, scopes: validation.scopes, hasRepoScope: validation.hasRepoScope };
   });

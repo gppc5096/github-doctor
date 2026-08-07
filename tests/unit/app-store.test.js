@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   addRecentProject, getRecentProjects, removeRecentProject, updateRecentProjectMemo,
+  addKnownAccount, getKnownAccounts,
   addRecoveryHistoryEntry, getRecoveryHistory,
   getSettings, updateSettings,
 } from '../../src/engine/app-store.js';
@@ -8,7 +9,7 @@ import {
 // electron-store를 항상 fake로 주입한다 — 실제 디스크(~/Library/Application Support/...)는
 // 절대 건드리지 않는다. fake는 Map 기반의 최소 get/set만 구현한다.
 function fakeStore(initial = {}) {
-  const data = { recentProjects: [], recoveryHistory: [], settings: {}, ...initial };
+  const data = { recentProjects: [], recoveryHistory: [], settings: {}, knownAccounts: [], ...initial };
   return { get: (key) => data[key], set: (key, value) => { data[key] = value; } };
 }
 
@@ -57,6 +58,18 @@ describe('app-store (electron-store 래퍼, 실제 디스크 미접근)', () => 
     addRecentProject({ path: '/a' }, { store });
     removeRecentProject('/no-such-path', { store });
     expect(getRecentProjects({ store })).toHaveLength(1);
+  });
+
+  it('addKnownAccount는 새 계정을 추가한다', () => {
+    addKnownAccount('gppc5096', { store });
+    addKnownAccount('jongchoon580325', { store });
+    expect(getKnownAccounts({ store })).toEqual(['gppc5096', 'jongchoon580325']);
+  });
+
+  it('addKnownAccount는 같은 계정을 중복 추가하지 않는다', () => {
+    addKnownAccount('gppc5096', { store });
+    addKnownAccount('gppc5096', { store });
+    expect(getKnownAccounts({ store })).toEqual(['gppc5096']);
   });
 
   it('최근 프로젝트는 20개를 넘으면 오래된 것부터 잘린다', () => {
