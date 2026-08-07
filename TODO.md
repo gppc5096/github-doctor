@@ -469,6 +469,26 @@
   > 있는지 확인, 그리고 스캔/진단만이 아니라 "자동 복구 계속"까지 실제로 실행했는지, 이 기능
   > 추가 이후 앱을 완전히 재시작했는지 확인.
 
+- [x] **AI 진단 실패 근본 원인 확정 및 수정 (2026-08-07) — 유효한 API 키인데 매번 규칙 기반으로
+  돌아가던 진짜 이유.** 방금 추가한 `_aiFallbackReason` 표시 덕분에 사용자가 정확한 에러
+  ("Cannot read properties of undefined (reading 'replace')")를 바로 확인해줌 → 공식 SDK 문서
+  (`@anthropic-ai/sdk` / `anthropic-sdk-typescript`)로 원인 확정: Claude 응답의 `content`는 여러
+  타입(`text`/`thinking`/`tool_use` 등)의 배열인데, **확장 사고(extended thinking)가 켜지면
+  `content[0]`이 `type:'thinking'` 블록**(`.text` 필드 자체가 없음)이고 실제 텍스트는 그 뒤에
+  옴 — 코드가 무조건 `content[0].text`만 읽어서 `undefined.replace()`로 조용히 깨지고 있었음.
+  **조치**: `msg.content.find(block => block.type === 'text')`로 타입 기준으로 찾도록 수정(공식
+  문서의 `tools.ts` 예제와 동일한 패턴 — `content.find(c => c.type === 'tool_use')`). 텍스트
+  블록이 아예 없으면 어떤 타입들이 왔는지 담아 명확히 실패. **부수 확인**: 이 조사 과정에서
+  `claude-sonnet-5` 모델 ID 자체는 공식 문서 예제에 그대로 쓰여있어 정확함을 확인 —
+  §5-1의 "재확인 필요" 경고 해소.
+  회귀 테스트 2개 추가(thinking 블록이 앞에 와도 정상 파싱 / 텍스트 블록이 아예 없을 때 명확한
+  폴백), 기존 fake 응답 픽스처 4곳에 `type: 'text'` 보강. 총 139개 테스트 통과.
+  > ℹ️ **"자동 복구 계속" 비활성화는 버그 아님**: origin_choice(SSH+HTTPS 둘 다 있음)처럼 사용자가
+  > 직접 골라야 하는 이슈는 auto-fix 대상이 아니라 recoveryPlan에 안 들어감 — 카드 안의
+  > "SSH 사용"/"HTTPS 사용" 버튼을 눌러야 한다(설계대로 동작).
+  > **알림 무음 실패는 아직 미해결** — macOS 시스템 설정 > 알림의 "Electron" 항목 허용 여부와
+  > "자동 복구 계속"(SSH/HTTPS 선택이 아니라)을 실제로 완주했는지 사용자 확인 대기 중.
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)

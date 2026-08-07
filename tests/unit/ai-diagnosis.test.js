@@ -30,6 +30,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
       messages: {
         create: async () => ({
           content: [{
+            type: 'text',
             text: JSON.stringify({
               summary: 'AI 요약',
               issues: [{ id: 'wrong_cred', severity: 'critical', title: 'x', description: 'y', autoFixable: true, fixType: 'auto' }],
@@ -56,6 +57,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
       messages: {
         create: async () => ({
           content: [{
+            type: 'text',
             text: JSON.stringify({
               summary: 'origin 오류 감지',
               issues: [],
@@ -95,7 +97,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
   it('AI 응답이 JSON이 아니면 규칙 기반으로 폴백하고, 파싱 실패 사유를 실어 보낸다', async () => {
     const fakeClient = {
       messages: {
-        create: async () => ({ content: [{ text: '이건 JSON이 아닙니다' }] }),
+        create: async () => ({ content: [{ type: 'text', text: '이건 JSON이 아닙니다' }] }),
       },
     };
     const result = await runDiagnose(okScanResult, {
@@ -106,11 +108,50 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
     expect(result._aiFallbackReason).toContain('AI 응답 파싱 실패');
   });
 
+  // 실사용 중 발견한 회귀 버그: 확장 사고(extended thinking)가 켜지면 content[0]이
+  // type:'thinking' 블록이고 실제 텍스트는 그 뒤에 온다. content[0]을 무조건 텍스트로 가정하면
+  // "Cannot read properties of undefined (reading 'replace')"로 조용히 깨진다 — 공식 SDK
+  // 문서(ContentBlock 유니온 타입)로 확인한 실제 응답 형태를 그대로 재현해서 검증한다.
+  it('content[0]이 thinking 블록이어도 뒤에 오는 text 블록을 찾아서 정상 파싱한다', async () => {
+    const fakeClient = {
+      messages: {
+        create: async () => ({
+          content: [
+            { type: 'thinking', thinking: '스캔 결과를 분석 중...', signature: 'sig==' },
+            { type: 'text', text: JSON.stringify({ summary: 'ok', issues: [], recoveryPlan: [] }) },
+          ],
+        }),
+      },
+    };
+    const result = await runDiagnose(okScanResult, {
+      getAiKey: async () => 'fake-key',
+      createClient: () => fakeClient,
+    });
+    expect(result.source).toBe('ai');
+    expect(result.summary).toBe('ok');
+  });
+
+  it('텍스트 블록이 아예 없으면 명확한 사유와 함께 규칙 기반으로 폴백한다', async () => {
+    const fakeClient = {
+      messages: {
+        create: async () => ({
+          content: [{ type: 'thinking', thinking: '...', signature: 'sig==' }],
+        }),
+      },
+    };
+    const result = await runDiagnose(okScanResult, {
+      getAiKey: async () => 'fake-key',
+      createClient: () => fakeClient,
+    });
+    expect(result.source).toBe('rule');
+    expect(result._aiFallbackReason).toContain('텍스트 블록이 없습니다');
+  });
+
   it('마크다운 코드펜스로 감싼 JSON도 정상 파싱한다', async () => {
     const fakeClient = {
       messages: {
         create: async () => ({
-          content: [{ text: '```json\n{"summary":"ok","issues":[],"recoveryPlan":[]}\n```' }],
+          content: [{ type: 'text', text: '```json\n{"summary":"ok","issues":[],"recoveryPlan":[]}\n```' }],
         }),
       },
     };

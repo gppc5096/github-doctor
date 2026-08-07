@@ -3,7 +3,7 @@ const { ruleDiagnose } = require('./diagnosis/rule-engine');
 const { buildRecoveryContext } = require('./recovery-context');
 const { getAiKey: defaultGetAiKey } = require('./ai-key-store');
 
-const DEFAULT_MODEL = 'claude-sonnet-5'; // ⚠️ 구현 시점에 Anthropic 공식 문서에서 최신 모델 ID 재확인 (docs/03 §5-1)
+const DEFAULT_MODEL = 'claude-sonnet-5'; // 공식 SDK 문서(anthropic-sdk-typescript) 예제와 대조해 확인 완료 (2026-08-07)
 
 // deps로 API 키 조회 함수/클라이언트 생성 함수/모델명을 주입받을 수 있다.
 // 기본값은 실제 keytar 조회(.env 폴백 포함, docs/04 §5-2)와 실제 Anthropic SDK이며, 테스트는
@@ -32,8 +32,16 @@ async function runDiagnose(scanResult, deps = {}) {
       max_tokens: 1024,
       messages: [{ role: 'user', content: prompt }],
     });
-    const raw = msg.content[0].text;
-    return parseAIResponse(raw, scanResult);
+    // content[0]을 무조건 텍스트로 가정하면 안 된다 — 확장 사고(extended thinking)가 켜지면
+    // content[0]이 type:'thinking' 블록이고 실제 텍스트는 그 뒤에 온다(실사용 중 발견, 공식
+    // SDK 문서로 확인: ContentBlock은 text/thinking/tool_use 등 여러 타입의 합집합이라
+    // type으로 찾아야 한다). type이 'text'인 블록을 찾아서 쓴다.
+    const textBlock = msg.content.find((block) => block.type === 'text');
+    if (!textBlock) {
+      const types = msg.content.map((b) => b.type).join(', ');
+      throw new Error(`AI 응답에 텍스트 블록이 없습니다 (content 타입: ${types})`);
+    }
+    return parseAIResponse(textBlock.text, scanResult);
   } catch (e) {
     // 3. API 실패 시 규칙 기반 폴백 (docs/03 §0-3 원칙: AI 응답 의존 최소화)
     // 원인을 메인 프로세스 콘솔에만 남기면 사용자는 절대 못 본다(실사용 중 발견 — "키는
