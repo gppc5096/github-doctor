@@ -19,11 +19,18 @@
           <span class="scan-label">{{ projectName(p.path) }}</span>
           <span class="scan-value">
             {{ timeAgo(p.lastScanAt) }} · {{ statusLabel(p) }}
-            <button @click.stop="projectsStore.remove(p.path)">삭제</button>
+            <button @click.stop="requestDelete(p.path)">삭제</button>
           </span>
         </li>
       </ul>
     </div>
+
+    <ConfirmModal
+      v-if="pendingDelete"
+      :message="`'${projectName(pendingDelete)}'를 최근 프로젝트 목록에서 삭제하시겠습니까?`"
+      @confirm="confirmDelete"
+      @cancel="pendingDelete = null"
+    />
   </div>
 </template>
 
@@ -35,6 +42,7 @@ import { useDiagnosisStore } from '../stores/diagnosis';
 import { useProjectsStore } from '../stores/projects';
 import TopBar from '../components/TopBar.vue';
 import PathBar from '../components/PathBar.vue';
+import ConfirmModal from '../components/ConfirmModal.vue';
 
 // 이 컴포넌트가 하는 일: 화면 조립 + 최근 프로젝트 클릭 시 스캔·진단 트리거만 (SCR-02, docs/04 §2).
 const router = useRouter();
@@ -43,8 +51,17 @@ const diagStore = useDiagnosisStore();
 const projectsStore = useProjectsStore();
 
 const path = ref('');
+const pendingDelete = ref(null); // 삭제 확인 대기 중인 프로젝트 경로 (null이면 모달 숨김)
 
 onMounted(() => projectsStore.load());
+
+function requestDelete(projectPath) {
+  pendingDelete.value = projectPath;
+}
+function confirmDelete() {
+  projectsStore.remove(pendingDelete.value);
+  pendingDelete.value = null;
+}
 
 function projectName(p) {
   return p.split('/').filter(Boolean).pop();

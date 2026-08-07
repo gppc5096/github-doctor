@@ -407,3 +407,47 @@ input {
   padding: 8px 10px;
   color: #e6e6f0;
 }
+
+/* ── 확인 모달 (ConfirmModal.vue) ─────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 16, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-card {
+  background: #21212f;
+  border: 1px solid #2c2c3c;
+  border-radius: 12px;
+  padding: 24px 28px;
+  width: 320px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+.modal-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+.modal-message {
+  color: #e6e6f0;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.modal-cancel {
+  background: #33334a;
+}
+.modal-confirm {
+  background: #7a2c2c;
+}
+.modal-confirm:hover:not(:disabled) {
+  background: #9a3a3a;
+}
