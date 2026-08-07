@@ -12,5 +12,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFolder: () => ipcRenderer.invoke('dialog:selectFolder'),
   saveCredential: (account, token) => ipcRenderer.invoke('credential:save', { account, token }),
   setDefaultCredentialHelper: () => ipcRenderer.invoke('credential:setHelper'),
+  getRecentProjects: () => ipcRenderer.invoke('store:getRecentProjects'),
+  getRecoveryHistory: () => ipcRenderer.invoke('store:getRecoveryHistory'),
+  getSettings: () => ipcRenderer.invoke('store:getSettings'),
+  updateSettings: (partial) => ipcRenderer.invoke('store:updateSettings', partial),
+  saveAiKey: (key) => ipcRenderer.invoke('store:saveAiKey', key),
+  getAiKeyStatus: () => ipcRenderer.invoke('store:getAiKeyStatus'),
   onProgress: (cb) => ipcRenderer.on('recover:progress', (_, data) => cb(data)),
 });

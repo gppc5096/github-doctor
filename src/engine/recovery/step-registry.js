@@ -6,6 +6,7 @@ const registry = {
   fix_origin: require('./steps/fix-origin'),
   add_origin: require('./steps/add-origin'),
   set_origin_protocol: require('./steps/set-origin-protocol'),
+  set_origin_url: require('./steps/set-origin-url'),
   gen_ssh: require('./steps/gen-ssh-key'),
   push: require('./steps/run-push'),
 };

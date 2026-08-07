@@ -324,6 +324,31 @@
   새 JS 상태 없음), 마우스 호버와 키보드 포커스(`tabindex`) 둘 다 지원. 브라우저에서 호버 시 툴팁
   내용까지 실제로 확인함.
 
+- [x] **사이드바 나머지 4개 화면 구현 상세 (2026-08-07, `docs/04` 설계 → `sidebar` 브랜치 구현).**
+  이 앱이 처음으로 "기록을 남기는" 영속 저장소를 갖게 됐다 — 지금까지는 순수 상태 조회 앱이었음.
+  - **`electron-store` 최초 도입**: `src/engine/app-store.js`(신규) — 최근 프로젝트(20개 상한)·
+    복구 히스토리(50개 상한)를 DI로 감싸 테스트 격리(다른 모든 OS/디스크 접근과 동일 원칙, 실제
+    `~/Library/Application Support/github-doctor/config.json` 미접근).
+  - **Claude API 키는 별도로 keytar에** — `src/engine/ai-key-store.js`(신규), PAT 저장 때와
+    동일한 이유로 electron-store(평문 JSON)에 절대 안 둠. `ai-diagnosis.js`의 기존
+    `apiKey = process.env.ANTHROPIC_API_KEY` 기본값을 `getAiKey()`(keytar 우선, `.env` 폴백) 호출로
+    교체 — 이 한 줄 교체가 기존 코드를 건드린 유일한 지점(설계 의도대로).
+  - **`ipc-handlers.js`가 15개 채널을 한 파일에 담고 있어 관심사별로 분리**(사용자가 반복 강조한
+    "리팩토링 없이 깨끗한 코드" 원칙 선제 적용 — 이번에 6개 채널을 더 얹으면 150줄 가까이 될 예정이라
+    미리 나눔): `src/main/ipc-handlers/` 디렉터리로 전환(`index.js` 오케스트레이터 +
+    scan/recovery/ssh/credential/store/misc-handlers.js). 기존 `require('./ipc-handlers')` 경로는
+    그대로 유지(Node가 디렉터리의 `index.js`로 자동 해석) — 옛 평면 파일은 삭제해 그림자 충돌 방지.
+  - **신규 복구 스텝** `set-origin-url.js`: `add_origin`(없을 때만)·`fix_origin`/`set_origin_protocol`
+    (프로토콜만)과 달리, origin 존재 여부와 무관하게 사용자가 입력한 임의 주소를 검증 없이 그대로
+    적용하는 유일한 origin 조작 기능이라 화면에 경고 문구를 붙임(§7 열린 질문 4번 해결).
+  - 최근 프로젝트 기록은 스캔이 아니라 **진단(diagnose) 완료 시점**에 함(이슈 개수·심각도를 함께
+    남기려면 진단 결과가 필요). 복구 히스토리는 `recover:run` 완료 직후 기록 — 각 스텝의 `message`
+    필드에 비밀값이 절대 안 들어간다는 기존 불변식을 그대로 신뢰(전수 확인함, docs/04 §4-3).
+  - 단위 테스트 3개 파일 추가(`app-store`/`ai-key-store`/`set-origin-url`, 총 13개 케이스) +
+    `ai-diagnosis.test.js` 6개 케이스를 새 `getAiKey` DI 계약에 맞게 갱신(전부 fake만 사용,
+    실제 keytar/electron-store 미접근). 총 124개 테스트 통과. 브라우저에서 4개 화면 전부(최근
+    프로젝트 클릭, origin 프로토콜 전환, 히스토리 아코디언, API 키 저장+알림 토글) 실제 클릭 확인.
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)
@@ -343,10 +368,12 @@
 - [x] ~~`git init` + 최초 커밋 + 실계정 통합 테스트 + push~~ — 2026-08-07 완료 (사용자 직접 지시,
   `github.com/gppc5096/github-doctor`로 push까지 완료. 아래 v1.0 로드맵 참고)
 - [ ] "SSH 키 GitHub 등록 여부" 스캔 항목 구현 여부 결정 — PRD에는 명시돼 있으나 GitHub API 인증(PAT)이 선행돼야 해서 범위가 커짐 (v0.8 노트 참고)
-- [ ] **사이드바 4개 화면(프로젝트 선택/Remote 설정/복구 히스토리/환경설정) 구현 — 설계안만 작성됨,
-  검토 후 확인 필요 (docs/04 참고).** `docs/04-GitHub_Doctor_사이드바_4개_화면_설계서.md`에 설계
-  완료, §7의 열린 질문 4가지(복구 히스토리 v1.5 여부, 환경설정 "언어" 항목 제외 여부, 알림 토글
-  선구현 여부, Remote 설정 자유 입력 검증 필요 여부) 확인 후 구현 착수.
+- [x] **사이드바 4개 화면(프로젝트 선택/Remote 설정/복구 히스토리/환경설정) 구현 완료 (2026-08-07,
+  `sidebar` 브랜치, `docs/04` 설계 → 구현).** §7의 열린 질문 4가지는 문서의 권장안대로 진행(전부
+  docs/04 그대로): (1) 복구 히스토리는 지금 구현(docs/03 §9-1 스키마 근거) (2) "언어" 항목은
+  이번 스코프 제외 (3) 알림 토글은 값만 저장, 실제 알림 로직은 다음으로 미룸 (4) Remote 설정의
+  자유 입력 origin 변경엔 경고 문구 추가(모달 확인 대신 인라인 경고 — 기존 UI 톤 유지).
+  아래 "전체 로드맵" v1.1 항목에 구현 상세 기록.
 
 ## 완료된 문서 작업
 

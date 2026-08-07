@@ -1,18 +1,21 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { ruleDiagnose } = require('./diagnosis/rule-engine');
 const { buildRecoveryContext } = require('./recovery-context');
+const { getAiKey: defaultGetAiKey } = require('./ai-key-store');
 
 const DEFAULT_MODEL = 'claude-sonnet-5'; // ⚠️ 구현 시점에 Anthropic 공식 문서에서 최신 모델 ID 재확인 (docs/03 §5-1)
 
-// deps로 API 키/클라이언트 생성 함수/모델명을 주입받을 수 있다.
-// 기본값은 실제 Anthropic SDK이며, 테스트는 반드시 fake client를 주입해서 호출한다
-// (실제 API 호출은 비용이 들고 네트워크·키가 필요하므로 자동화 테스트에서 절대 실행하지 않는다).
+// deps로 API 키 조회 함수/클라이언트 생성 함수/모델명을 주입받을 수 있다.
+// 기본값은 실제 keytar 조회(.env 폴백 포함, docs/04 §5-2)와 실제 Anthropic SDK이며, 테스트는
+// 반드시 fake getAiKey/createClient를 주입해서 호출한다 (실제 API 호출은 비용이 들고
+// 네트워크·키가 필요하며, 실제 keytar 조회도 마찬가지로 자동화 테스트에서 절대 실행하지 않는다).
 async function runDiagnose(scanResult, deps = {}) {
   const {
-    apiKey = process.env.ANTHROPIC_API_KEY,
+    getAiKey = defaultGetAiKey,
     createClient = (key) => new Anthropic({ apiKey: key }),
     model = DEFAULT_MODEL,
   } = deps;
+  const apiKey = await getAiKey();
 
   // 1. API 키 자체가 없으면 AI 호출을 시도하지 않고 바로 규칙 기반으로 전환
   if (!apiKey) {

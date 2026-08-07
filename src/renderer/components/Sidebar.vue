@@ -11,22 +11,22 @@
     <nav class="sidebar-nav">
       <div class="nav-group">
         <NavItem to="/" label="진단 대시보드" icon="✧" />
-        <NavItem label="프로젝트 선택" icon="📁" disabled />
+        <NavItem to="/projects" label="프로젝트 선택" icon="📁" />
         <NavItem to="/account" label="계정 관리" icon="👤" />
       </div>
       <div class="nav-group">
         <NavItem to="/ssh" label="SSH 키 관리" icon="🔑" />
         <NavItem to="/credentials" label="인증정보 관리" icon="🔒" />
-        <NavItem label="Remote 설정" icon="🔀" disabled />
+        <NavItem to="/remote" label="Remote 설정" icon="🔀" />
         <NavItem label="배포 연동" icon="☁" disabled />
       </div>
       <div class="nav-group">
-        <NavItem label="복구 히스토리" icon="🕓" disabled />
+        <NavItem to="/history" label="복구 히스토리" icon="🕓" />
       </div>
     </nav>
 
     <div class="sidebar-footer">
-      <NavItem label="환경설정" icon="⚙" disabled />
+      <NavItem to="/settings" label="환경설정" icon="⚙" />
     </div>
   </aside>
 </template>

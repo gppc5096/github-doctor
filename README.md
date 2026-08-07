@@ -56,19 +56,24 @@ src/
 ├── main/            # Electron 메인 프로세스
 │   ├── index.js         # 앱 진입점 (BrowserWindow 생성)
 │   ├── preload.js          # contextBridge 보안 브릿지
-│   └── ipc-handlers.js       # IPC 채널 핸들러 (scan/diagnose/ssh/credential/openUrl/dialog)
+│   └── ipc-handlers/          # IPC 채널 핸들러 (관심사별 파일 분리, v1.1)
+│       └── index.js              # 오케스트레이터 (scan/recovery/ssh/credential/store/misc)
 ├── renderer/        # Vue 3 UI — App.vue가 Sidebar+본문 셸을 구성
-│   ├── router/, stores/(scan·diagnosis·recovery·ssh·credentials)
+│   ├── router/, stores/(scan·diagnosis·recovery·ssh·credentials·projects·history·settings)
 │   ├── components/
 │   │   ├── Sidebar.vue, TopBar.vue, PathBar.vue     # 공통 셸 컴포넌트 (PathBar: 네이티브 폴더 선택 다이얼로그 포함)
 │   │   ├── ScanResultCard.vue, DiagnosisCard.vue      # 스캔/진단 결과 카드
-│   │   ├── IssueItem.vue                                # 이슈 1건 + "다음 행동" 버튼/입력창 (openUrl/navigate/input/rescan)
+│   │   ├── IssueItem.vue                                # 이슈 1건 + "다음 행동" 버튼/입력창 (openUrl/navigate/input/rescan/choice)
 │   │   └── RecoverySteps.vue, ActionBar.vue             # 복구 타임라인 + 액션 바
 │   └── views/
 │       ├── Dashboard.vue    # SCR-01 (docs/02 §5-2 와이어프레임 그대로 구현)
 │       ├── SshManager.vue     # SCR-04 (SSH 키 목록·생성·삭제·공개키 복사)
 │       ├── CredentialManager.vue  # SCR-03 (PAT 등록 — 마스킹 입력, docs/03 §16)
-│       └── AccountManager.vue        # 계정 관리 (git user.name/email 수동 전환, fix_config 재사용)
+│       ├── AccountManager.vue        # 계정 관리 (git user.name/email 수동 전환, fix_config 재사용)
+│       ├── ProjectSelect.vue            # SCR-02 (최근 프로젝트 목록, docs/04 §2)
+│       ├── RemoteConfig.vue                # SCR-06 (origin 관리, docs/04 §3)
+│       ├── RecoveryHistory.vue                # SCR-08 (복구 실행 기록, docs/04 §4)
+│       └── Settings.vue                          # SCR-10 (Claude API 키·알림, docs/04 §5)
 ├── engine/          # 진단·복구 엔진 (Node.js)
 │   ├── git-helper.js     # git/시스템 명령 실행 유틸
 │   ├── scanners/           # Phase 1: 9개 항목 자동 스캔 (항목별 파일 분리)
@@ -81,10 +86,12 @@ src/
 │   │   ├── index.js                 # 오케스트레이터 (push는 steps에 명시된 경우만 실행)
 │   │   ├── step-registry.js           # 스텝 id → 실행 함수 매핑
 │   │   ├── push-error-classifier.js     # push 실패 stderr → 원인 분류(6종) + 다음 행동
-│   │   └── steps/                       # fix-wrong-cred / fix-user-config / fix-origin / add-origin / set-origin-protocol / gen-ssh-key / run-push
+│   │   └── steps/                       # fix-wrong-cred / fix-user-config / fix-origin / add-origin / set-origin-protocol / set-origin-url / gen-ssh-key / run-push
 │   ├── pat-validator.js          # PAT 유효성 + repo 스코프 확인 (docs/03 §16)
 │   ├── pat-store.js                 # git credential approve로 PAT 저장 (stdin 전달, 로그 노출 없음)
 │   ├── cred-helper-setup.js            # credential.helper 플랫폼 기본값 설정
+│   ├── app-store.js                       # 최근 프로젝트/복구 히스토리 영속 저장 (electron-store, docs/04 §1)
+│   ├── ai-key-store.js                       # Claude API 키 저장/조회 (keytar, .env 폴백, docs/04 §5-2)
 │   └── cli.js                    # 터미널 진입점
 ├── adapters/        # OS별 인증 어댑터 (macOS Keychain / Windows Credential Manager, SSH 키 생성·삭제 포함)
 └── shared/          # Main·Renderer 공용 IPC 채널 상수
@@ -127,6 +134,14 @@ tests/
 - [x] v1.0 착수 — 상단 드래그 영역을 전체 폭으로 확장 (사용자 요청): `.sidebar-logo`와 각 화면 `.top-bar`를 같은 상단 오프셋(40px)으로 정렬하고 둘 다 드래그 가능하게 만들어 하나로 이어진 상단 바처럼 보이게 함. 버튼 영역(`.top-bar-actions`)은 `no-drag`로 클릭 유지. 공유 헤더 컴포넌트로 완전히 합치는 대신 CSS 정렬만으로 처리(구현 리스크 낮음)
 - [x] v1.0 착수 — 진단 이슈에 "다음 행동" 추가 (사용자가 실사용 중 발견한 UX 공백, 시니어가 구체안 설계): guide/semi 이슈가 텍스트만 보여주고 사용자를 방치하던 문제. `openUrl`/`navigate`/`input`/`rescan` 4가지 액션 타입 추가, `add_origin` 복구 스텝 신규(`no_origin` 이슈에 주소 입력→즉시 연결). 브라우저에서 `input`(연결→재스캔→문제 해소)과 `navigate`(SSH 키 관리 이동) 전체 흐름 실제 클릭까지 확인
 - [x] v1.0 착수 — 복구 스텝들이 git 명령 실패를 확인 안 하고 항상 "성공" 반환하던 버그 수정 (사용자가 "진짜 실행되는지" 질문하며 발견): `add-origin`/`fix-origin`/`fix-user-config`/`fix-wrong-cred` 전부 결과 확인 후 실패 시 명확히 throw하도록 통일
+- [x] v1.1 — 사이드바 나머지 4개 화면 구현 (프로젝트 선택/Remote 설정/복구 히스토리/환경설정, 설계 문서
+  `docs/04` 사전 작성 후 진행, `sidebar` 브랜치): `electron-store` 최초 도입(최근 프로젝트·복구
+  히스토리, DI 래핑), Claude API 키는 keytar로 별도 저장(electron-store에 절대 안 둠, PAT와 동일
+  원칙). `ai-diagnosis.js`는 이제 `getAiKey()`로 keytar 우선, `.env` 폴백. 신규 복구 스텝
+  `set_origin_url`(임의 주소로 origin 교체). `ipc-handlers.js`가 15개 채널을 한 파일에 다 담고
+  있어 관심사별로 분리(`ipc-handlers/` 디렉터리, scan/recovery/ssh/credential/store/misc). 배포
+  연동(SCR-07)은 문서상 v1.5 항목이라 이번 스코프에서 제외. 브라우저에서 4개 화면 전부 클릭까지
+  실제 확인
 - [ ] v1.0 잔여 — 실제 QA(실계정) · 코드 서명 · 패키징 · 배포 (사용자 지시 필요)
 
-테스트 총 111개 통과 (`npm test`). 이후 로드맵과 알려진 한계는 `TODO.md`를 참고하세요.
+테스트 총 124개 통과 (`npm test`). 이후 로드맵과 알려진 한계는 `TODO.md`를 참고하세요.

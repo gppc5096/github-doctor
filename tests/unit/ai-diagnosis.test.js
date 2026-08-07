@@ -21,7 +21,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
     const createClient = () => {
       throw new Error('호출되면 안 됨: API 키 없이는 client를 만들지 않아야 함');
     };
-    const result = await runDiagnose(okScanResult, { apiKey: undefined, createClient });
+    const result = await runDiagnose(okScanResult, { getAiKey: async () => undefined, createClient });
     expect(result.source).toBe('rule');
   });
 
@@ -40,7 +40,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
       },
     };
     const result = await runDiagnose(okScanResult, {
-      apiKey: 'fake-key',
+      getAiKey: async () => 'fake-key',
       createClient: () => fakeClient,
     });
     expect(result.source).toBe('ai');
@@ -67,7 +67,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
       },
     };
     const result = await runDiagnose(okScanResult, {
-      apiKey: 'fake-key',
+      getAiKey: async () => 'fake-key',
       createClient: () => fakeClient,
     });
     expect(result._context.correctOrigin).toBe('https://github.com/jongchoon580325/housebook.git');
@@ -84,7 +84,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
       },
     };
     const result = await runDiagnose(okScanResult, {
-      apiKey: 'fake-key',
+      getAiKey: async () => 'fake-key',
       createClient: () => fakeClient,
     });
     expect(result.source).toBe('rule');
@@ -97,7 +97,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
       },
     };
     const result = await runDiagnose(okScanResult, {
-      apiKey: 'fake-key',
+      getAiKey: async () => 'fake-key',
       createClient: () => fakeClient,
     });
     expect(result.source).toBe('rule');
@@ -112,7 +112,7 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
       },
     };
     const result = await runDiagnose(okScanResult, {
-      apiKey: 'fake-key',
+      getAiKey: async () => 'fake-key',
       createClient: () => fakeClient,
     });
     expect(result.source).toBe('ai');
