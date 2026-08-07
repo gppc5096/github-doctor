@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { saveAiKey, getAiKey } from '../../src/engine/ai-key-store.js';
+import { saveAiKey, getAiKey, deleteAiKey } from '../../src/engine/ai-key-store.js';
 
 // keytar를 항상 fake로 주입한다 — 실제 Keychain은 절대 건드리지 않는다.
 describe('ai-key-store (Claude API 키 저장/조회, 실제 Keychain 미접근)', () => {
@@ -33,5 +33,12 @@ describe('ai-key-store (Claude API 키 저장/조회, 실제 Keychain 미접근)
     const keytar = { getPassword: async () => null };
     const result = await getAiKey({ keytar });
     expect(result).toBeNull();
+  });
+
+  it('deleteAiKey는 fake keytar로만 삭제를 시도한다', async () => {
+    const calls = [];
+    const keytar = { deletePassword: async (service, account) => calls.push({ service, account }) };
+    await deleteAiKey({ keytar });
+    expect(calls).toEqual([{ service: 'github-doctor-anthropic', account: 'default' }]);
   });
 });

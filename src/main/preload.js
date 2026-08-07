@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSettings: () => ipcRenderer.invoke('store:getSettings'),
   updateSettings: (partial) => ipcRenderer.invoke('store:updateSettings', partial),
   saveAiKey: (key) => ipcRenderer.invoke('store:saveAiKey', key),
+  deleteAiKey: () => ipcRenderer.invoke('store:deleteAiKey'),
   getAiKeyStatus: () => ipcRenderer.invoke('store:getAiKeyStatus'),
   onProgress: (cb) => ipcRenderer.on('recover:progress', (_, data) => cb(data)),
 });

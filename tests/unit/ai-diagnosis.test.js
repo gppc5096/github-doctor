@@ -25,6 +25,43 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
     expect(result.source).toBe('rule');
   });
 
+  // v1.1 (2026-08-08, 사용자 요청): 환경설정의 "중지" — 키는 남겨두고 AI 사용만 끌 수 있다.
+  it('설정에서 aiEnabled:false면 키가 있어도 AI를 호출하지 않고 규칙 기반으로 전환한다', async () => {
+    const createClient = () => {
+      throw new Error('호출되면 안 됨: 중지 상태에서는 client를 만들지 않아야 함');
+    };
+    const result = await runDiagnose(okScanResult, {
+      getAiKey: async () => 'fake-key',
+      getSettings: () => ({ aiEnabled: false }),
+      createClient,
+    });
+    expect(result.source).toBe('rule');
+  });
+
+  it('aiEnabled가 명시적으로 없으면(undefined) 기존대로 AI를 시도한다', async () => {
+    const fakeClient = {
+      messages: { create: async () => ({ content: [{ type: 'text', text: '{"summary":"ok","issues":[],"recoveryPlan":[]}' }] }) },
+    };
+    const result = await runDiagnose(okScanResult, {
+      getAiKey: async () => 'fake-key',
+      getSettings: () => ({}), // notificationsEnabled 등 다른 설정만 있고 aiEnabled는 아직 없는 상태
+      createClient: () => fakeClient,
+    });
+    expect(result.source).toBe('ai');
+  });
+
+  it('설정 조회 자체가 실패해도(Electron 컨텍스트 밖 등) 기존대로 AI를 시도한다', async () => {
+    const fakeClient = {
+      messages: { create: async () => ({ content: [{ type: 'text', text: '{"summary":"ok","issues":[],"recoveryPlan":[]}' }] }) },
+    };
+    const result = await runDiagnose(okScanResult, {
+      getAiKey: async () => 'fake-key',
+      getSettings: () => { throw new Error('설정 조회 실패 시뮬레이션'); },
+      createClient: () => fakeClient,
+    });
+    expect(result.source).toBe('ai');
+  });
+
   it('AI가 정상 JSON을 반환하면 그대로 파싱해서 반환한다', async () => {
     let receivedParams;
     const fakeClient = {

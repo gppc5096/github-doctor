@@ -15,4 +15,8 @@ async function getAiKey({ keytar = nodeKeytar } = {}) {
   return stored || process.env.ANTHROPIC_API_KEY || null;
 }
 
-module.exports = { saveAiKey, getAiKey };
+async function deleteAiKey({ keytar = nodeKeytar } = {}) {
+  await keytar.deletePassword(SERVICE, ACCOUNT);
+}
+
+module.exports = { saveAiKey, getAiKey, deleteAiKey };

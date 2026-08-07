@@ -1,5 +1,5 @@
 const appStore = require('../../engine/app-store');
-const { saveAiKey, getAiKey } = require('../../engine/ai-key-store');
+const { saveAiKey, getAiKey, deleteAiKey } = require('../../engine/ai-key-store');
 const CH = require('../../shared/ipc-channels');
 
 // 이 파일이 하는 일: 최근 프로젝트/복구 히스토리/앱 설정/Claude API 키 IPC만 (docs/04).
@@ -23,6 +23,13 @@ function registerStoreHandlers(ipcMain) {
 
   ipcMain.handle(CH.AI_KEY_SAVE, async (event, key) => {
     await saveAiKey(key);
+    return { ok: true };
+  });
+
+  // 환경설정 "삭제" — 키 자체를 keytar에서 제거 ("중지"는 키를 안 건드리고 SETTINGS_UPDATE로
+  // aiEnabled만 끈다, ai-diagnosis.js가 확인).
+  ipcMain.handle(CH.AI_KEY_DELETE, async () => {
+    await deleteAiKey();
     return { ok: true };
   });
 

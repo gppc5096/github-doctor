@@ -20,6 +20,7 @@ module.exports = {
   SETTINGS_GET: 'store:getSettings',
   SETTINGS_UPDATE: 'store:updateSettings',
   AI_KEY_SAVE: 'store:saveAiKey',
+  AI_KEY_DELETE: 'store:deleteAiKey',
   // 키 값 자체는 절대 렌더러로 보내지 않는다 — 설정 여부만 확인 (docs/04 §5-2 보안 원칙과 동일선상)
   AI_KEY_STATUS: 'store:getAiKeyStatus',
 };

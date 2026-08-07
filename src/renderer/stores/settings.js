@@ -32,5 +32,14 @@ export const useSettingsStore = defineStore('settings', {
         this.isSavingKey = false;
       }
     },
+    // "중지" — 키는 그대로 두고 AI 사용만 끈다/켠다 (ai-diagnosis.js가 aiEnabled를 확인).
+    async toggleAiEnabled(enabled) {
+      this.settings = await window.electronAPI.updateSettings({ aiEnabled: enabled });
+    },
+    // "삭제" — 저장된 키 자체를 제거한다.
+    async deleteAiKey() {
+      await window.electronAPI.deleteAiKey();
+      this.aiKeyConfigured = false;
+    },
   },
 });

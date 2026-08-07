@@ -2,19 +2,35 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { ruleDiagnose } = require('./diagnosis/rule-engine');
 const { buildRecoveryContext } = require('./recovery-context');
 const { getAiKey: defaultGetAiKey } = require('./ai-key-store');
+const appStore = require('./app-store');
 
 const DEFAULT_MODEL = 'claude-sonnet-5'; // 공식 SDK 문서(anthropic-sdk-typescript) 예제와 대조해 확인 완료 (2026-08-07)
 
-// deps로 API 키 조회 함수/클라이언트 생성 함수/모델명을 주입받을 수 있다.
+// deps로 API 키 조회 함수/설정 조회 함수/클라이언트 생성 함수/모델명을 주입받을 수 있다.
 // 기본값은 실제 keytar 조회(.env 폴백 포함, docs/04 §5-2)와 실제 Anthropic SDK이며, 테스트는
 // 반드시 fake getAiKey/createClient를 주입해서 호출한다 (실제 API 호출은 비용이 들고
 // 네트워크·키가 필요하며, 실제 keytar 조회도 마찬가지로 자동화 테스트에서 절대 실행하지 않는다).
 async function runDiagnose(scanResult, deps = {}) {
   const {
     getAiKey = defaultGetAiKey,
+    getSettings = appStore.getSettings,
     createClient = (key) => new Anthropic({ apiKey: key }),
     model = DEFAULT_MODEL,
   } = deps;
+
+  // 0. 환경설정의 "중지" — 키를 지우지 않고 AI 사용만 잠깐 끌 수 있다. 설정 조회 자체가 실패해도
+  // (예: Electron 컨텍스트 밖, scanners/index.js의 getKnownAccounts와 동일 이유) 기존 동작을
+  // 그대로 유지한다(AI 시도 → 키 없으면 자연스럽게 규칙 기반으로 폴백).
+  let aiEnabled = true;
+  try {
+    aiEnabled = getSettings().aiEnabled !== false;
+  } catch (e) {
+    console.warn('설정 조회 실패, AI 사용 여부는 기존대로 시도:', e.message);
+  }
+  if (!aiEnabled) {
+    return ruleDiagnose(scanResult);
+  }
+
   const apiKey = await getAiKey();
 
   // 1. API 키 자체가 없으면 AI 호출을 시도하지 않고 바로 규칙 기반으로 전환
