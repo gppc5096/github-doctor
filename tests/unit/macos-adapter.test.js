@@ -78,6 +78,20 @@ describe('macos-adapter (DI로 실제 Keychain 완전 차단)', () => {
     expect(result.ok).toBe(false);
   });
 
+  // 실사용 중 발견: find로는 존재가 확인됐는데 delete는 "찾을 수 없음"으로 실패하는 경우가 있었음
+  // (직전에 이미 삭제됐거나 진단이 최신 상태를 못 따라간 경우) — 목표(그 계정이 Keychain에 없음)는
+  // 이미 달성된 것이니 실패로 취급하지 않는다.
+  it('deleteCredential은 이미 없는 항목(Keychain에서 못 찾음)이면 성공으로 처리한다', async () => {
+    const execSync = () => {
+      throw new Error(
+        'Command failed: security delete-internet-password -a "jongchoon580325" -s github.com\n' +
+        'security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain.'
+      );
+    };
+    const result = await adapter.deleteCredential('jongchoon580325', { service: 'github-doctor-test', execSync });
+    expect(result).toEqual({ ok: true });
+  });
+
   it('saveCredential은 fake keytar로만 저장을 시도한다 (실제 Keychain 미접근)', async () => {
     const calls = [];
     const keytar = {

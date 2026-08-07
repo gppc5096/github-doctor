@@ -55,6 +55,13 @@ async function deleteCredential(account, { service = DEFAULT_SERVICE, execSync =
     execSync(`security delete-internet-password -a "${account}" -s ${service}`, { stdio: 'pipe' });
     return { ok: true };
   } catch (e) {
+    // "이미 없음"은 삭제 목표(그 계정이 Keychain에 없는 상태)가 이미 달성된 것과 같아 실패로
+    // 치지 않는다 (실사용 중 발견: security find-internet-password로는 존재가 확인됐는데
+    // security delete-internet-password는 "찾을 수 없음"으로 실패하는 경우가 있었음 —
+    // 직전에 이미 삭제됐거나 진단이 최신 Keychain 상태를 반영하지 못한 경우로 추정).
+    if (/could not be found in the keychain/i.test(e.message)) {
+      return { ok: true };
+    }
     return { ok: false, error: e.message };
   }
 }

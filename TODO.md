@@ -416,6 +416,22 @@
   시 재스캔해 목록 갱신. 브라우저에서 확인 모달 → 확인 → 해당 계정만 삭제되고 나머지는 유지되는
   것까지 실제 확인. 테스트는 추가하지 않음(신규 엔진 로직 없이 기존에 검증된 adapter 함수 재사용).
 
+- [x] **자동 복구(wrong_cred)가 "Keychain에서 못 찾음" 오류로 매번 실패하던 버그 (2026-08-07,
+  사용자가 실사용 중 발견 — 스캔은 jongchoon580325/namsabo180708-prog 2개 계정을 오계정으로
+  찾아냈는데, 정작 삭제 시도는 둘 다 "SecKeychainSearchCopyNext: The specified item could not be
+  found in the keychain"로 실패해 복구 전체가 중단됨).** `security find-internet-password`(존재
+  확인)는 찾아내는데 `security delete-internet-password`(삭제)는 같은 항목을 못 찾는 경우가 실제로
+  있음을 확인 — 직전에 이미 삭제됐거나(예: 방금 추가한 인증정보 관리 "삭제" 버튼을 먼저 쓰고
+  재스캔 없이 대시보드의 예전 진단 결과로 복구를 실행한 경우), 진단이 최신 Keychain 상태를 못
+  따라간 경우로 추정. **조치**: `wrong_cred` 스텝의 진짜 목표는 "그 계정이 Keychain에 없는 상태"인데
+  삭제하려는 게 이미 없다면 목표는 이미 달성된 것 — `macos-adapter.js`/`windows-adapter.js`의
+  `deleteCredential`이 "이미 없음"류 에러("could not be found in the keychain" / "could not be
+  found")를 실패가 아니라 성공으로 처리하도록 수정(idempotent delete, `rm -f`와 같은 원칙).
+  `fix-wrong-cred.js`는 손대지 않음 — 이미 `{ok,error}` 결과만 신뢰하는 구조라 어댑터 계층에서만
+  고치면 자동으로 올바르게 동작함. 단위 테스트 2개 추가(macOS/Windows 각각 "이미 없음" 케이스),
+  기존 "일반 실패 시 ok:false" 테스트는 그대로 유지(다른 종류의 에러는 여전히 실패로 처리). 총
+  136개 테스트 통과.
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)

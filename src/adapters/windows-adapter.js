@@ -48,6 +48,11 @@ async function deleteCredential(account, { target = DEFAULT_TARGET, execSync = n
     execSync(`cmdkey /delete:${target}`, { stdio: 'pipe' });
     return { ok: true };
   } catch (e) {
+    // macos-adapter.js와 같은 이유 — 이미 없는 항목을 지우려는 시도는 목표가 이미 달성된 것이니
+    // 실패로 치지 않는다("CMDKEY: ... could not be found" 계열 메시지).
+    if (/could not be found|cannot be found/i.test(e.message)) {
+      return { ok: true };
+    }
     return { ok: false, error: e.message };
   }
 }

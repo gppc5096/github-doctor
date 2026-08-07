@@ -52,6 +52,16 @@ describe('windows-adapter (DI로 실제 Credential Manager 완전 차단)', () =
     expect(result).toEqual({ ok: true });
   });
 
+  // macos-adapter.js와 같은 이유(실사용 중 발견) — 이미 없는 항목을 지우려는 시도는 목표가 이미
+  // 달성된 것이니 실패로 취급하지 않는다.
+  it('deleteCredential은 이미 없는 항목(cmdkey가 못 찾음)이면 성공으로 처리한다', async () => {
+    const execSync = () => {
+      throw new Error('CMDKEY: The specified target credential could not be found.');
+    };
+    const result = await adapter.deleteCredential('acct', { target: 'git:https://github-doctor-test', execSync });
+    expect(result).toEqual({ ok: true });
+  });
+
   it('saveCredential은 fake keytar로만 저장을 시도한다 (실제 Credential Manager 미접근)', async () => {
     const calls = [];
     const keytar = {
