@@ -9,5 +9,8 @@ export const useProjectsStore = defineStore('projects', {
     async load() {
       this.recentProjects = await window.electronAPI.getRecentProjects();
     },
+    async remove(path) {
+      this.recentProjects = await window.electronAPI.removeRecentProject(path);
+    },
   },
 });

@@ -17,7 +17,10 @@
         >
           <span :class="['dot', `dot-${dotSeverity(p.worstSeverity)}`]" />
           <span class="scan-label">{{ projectName(p.path) }}</span>
-          <span class="scan-value">{{ timeAgo(p.lastScanAt) }} · {{ statusLabel(p) }}</span>
+          <span class="scan-value">
+            {{ timeAgo(p.lastScanAt) }} · {{ statusLabel(p) }}
+            <button @click.stop="projectsStore.remove(p.path)">삭제</button>
+          </span>
         </li>
       </ul>
     </div>

@@ -29,6 +29,11 @@ function getRecentProjects({ store } = {}) {
   return getStore(store).get('recentProjects');
 }
 
+function removeRecentProject(path, { store } = {}) {
+  const s = getStore(store);
+  s.set('recentProjects', s.get('recentProjects').filter((p) => p.path !== path));
+}
+
 function addRecoveryHistoryEntry(entry, { store } = {}) {
   const s = getStore(store);
   const list = s.get('recoveryHistory');
@@ -50,7 +55,7 @@ function updateSettings(partial, { store } = {}) {
 }
 
 module.exports = {
-  addRecentProject, getRecentProjects,
+  addRecentProject, getRecentProjects, removeRecentProject,
   addRecoveryHistoryEntry, getRecoveryHistory,
   getSettings, updateSettings,
 };

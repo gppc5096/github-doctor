@@ -12,6 +12,7 @@ module.exports = {
   CREDENTIAL_SAVE: 'credential:save',
   CREDENTIAL_SET_HELPER: 'credential:setHelper',
   RECENT_PROJECTS_GET: 'store:getRecentProjects',
+  RECENT_PROJECTS_REMOVE: 'store:removeRecentProject',
   RECOVERY_HISTORY_GET: 'store:getRecoveryHistory',
   SETTINGS_GET: 'store:getSettings',
   SETTINGS_UPDATE: 'store:updateSettings',

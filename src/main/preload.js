@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveCredential: (account, token) => ipcRenderer.invoke('credential:save', { account, token }),
   setDefaultCredentialHelper: () => ipcRenderer.invoke('credential:setHelper'),
   getRecentProjects: () => ipcRenderer.invoke('store:getRecentProjects'),
+  removeRecentProject: (path) => ipcRenderer.invoke('store:removeRecentProject', path),
   getRecoveryHistory: () => ipcRenderer.invoke('store:getRecoveryHistory'),
   getSettings: () => ipcRenderer.invoke('store:getSettings'),
   updateSettings: (partial) => ipcRenderer.invoke('store:updateSettings', partial),

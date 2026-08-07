@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  addRecentProject, getRecentProjects,
+  addRecentProject, getRecentProjects, removeRecentProject,
   addRecoveryHistoryEntry, getRecoveryHistory,
   getSettings, updateSettings,
 } from '../../src/engine/app-store.js';
@@ -28,6 +28,19 @@ describe('app-store (electron-store 래퍼, 실제 디스크 미접근)', () => 
     const list = getRecentProjects({ store });
     expect(list).toHaveLength(1);
     expect(list[0]).toEqual({ path: '/a', lastScanAt: 't2', issueCount: 0 });
+  });
+
+  it('removeRecentProject는 해당 경로만 제거하고 나머지는 그대로 둔다', () => {
+    addRecentProject({ path: '/a' }, { store });
+    addRecentProject({ path: '/b' }, { store });
+    removeRecentProject('/a', { store });
+    expect(getRecentProjects({ store }).map((p) => p.path)).toEqual(['/b']);
+  });
+
+  it('removeRecentProject는 없는 경로를 지워도 에러 없이 목록을 그대로 둔다', () => {
+    addRecentProject({ path: '/a' }, { store });
+    removeRecentProject('/no-such-path', { store });
+    expect(getRecentProjects({ store })).toHaveLength(1);
   });
 
   it('최근 프로젝트는 20개를 넘으면 오래된 것부터 잘린다', () => {
