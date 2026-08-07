@@ -29,13 +29,16 @@ async function runDiagnose(scanResult, deps = {}) {
     const prompt = buildPrompt(scanResult);
     const msg = await client.messages.create({
       model,
-      max_tokens: 1024,
+      max_tokens: 2048,
+      // 이 작업은 정해진 형식의 JSON을 만드는 단순 작업이라 확장 사고가 필요 없다 — 무엇보다
+      // thinking에 쓴 토큰도 max_tokens 예산에서 함께 차감돼(공식 문서 확인: "counts towards
+      // your max_tokens limit"), 응답이 중간에 잘려 JSON 파싱이 깨지는 실제 사고가 있었다.
+      // 명시적으로 꺼서 예산을 전부 응답에 쓰게 한다.
+      thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: prompt }],
     });
-    // content[0]을 무조건 텍스트로 가정하면 안 된다 — 확장 사고(extended thinking)가 켜지면
-    // content[0]이 type:'thinking' 블록이고 실제 텍스트는 그 뒤에 온다(실사용 중 발견, 공식
-    // SDK 문서로 확인: ContentBlock은 text/thinking/tool_use 등 여러 타입의 합집합이라
-    // type으로 찾아야 한다). type이 'text'인 블록을 찾아서 쓴다.
+    // content[0]을 무조건 텍스트로 가정하면 안 된다 — 확장 사고가 다시 켜지는 경우(모델 기본값
+    // 변경 등)에 대비해 방어적으로 유지한다. type이 'text'인 블록을 찾아서 쓴다.
     const textBlock = msg.content.find((block) => block.type === 'text');
     if (!textBlock) {
       const types = msg.content.map((b) => b.type).join(', ');

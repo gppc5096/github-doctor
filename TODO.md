@@ -489,6 +489,20 @@
   > **알림 무음 실패는 아직 미해결** — macOS 시스템 설정 > 알림의 "Electron" 항목 허용 여부와
   > "자동 복구 계속"(SSH/HTTPS 선택이 아니라)을 실제로 완주했는지 사용자 확인 대기 중.
 
+- [x] **AI 진단이 여전히 실패하던 2차 원인: thinking 토큰이 max_tokens 예산을 갉아먹어 JSON 응답이
+  중간에 잘림 (2026-08-07, content 블록 수정 후에도 사용자가 재현 — "Unterminated string in
+  JSON at position 907").** 공식 SDK 문서 재확인: "thinking에 쓴 토큰도 `max_tokens`(당시 1024)
+  예산에서 함께 차감된다"가 명시돼 있음 — 사고에 토큰을 많이 쓰면 정작 JSON을 완성할 토큰이
+  부족해져 응답이 문자열 중간에서 잘림. **조치**: 이 작업(정해진 형식의 JSON 생성)은 복잡한
+  추론이 필요 없으니 `thinking: { type: 'disabled' }`로 명시적으로 꺼서 예산을 전부 응답에 쓰게
+  하고, `max_tokens`도 1024→2048로 올려 여유를 둠. content 블록을 타입으로 찾는 기존 방어 로직은
+  thinking이 나중에 다시 켜지는 경우(모델 기본값 변경 등)에 대비해 그대로 유지. 테스트 1개
+  갱신(실제로 `thinking:disabled`·`max_tokens:2048`이 API 호출에 실려 가는지 확인) — 총 139개
+  테스트 통과.
+  > ℹ️ 참고로 문서에서 `output_config.format: { type: 'json_schema', schema: {...} }`로 응답
+  > 형식을 아예 강제하는 구조화 출력 기능도 확인함 — 지금은 범위를 좁혀 진행하지 않았지만,
+  > "AI가 JSON 형식을 안 지킬 가능성" 자체를 없앨 수 있는 더 견고한 다음 단계로 TODO에 남겨둠.
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)

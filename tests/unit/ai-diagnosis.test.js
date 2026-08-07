@@ -26,18 +26,22 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
   });
 
   it('AI가 정상 JSON을 반환하면 그대로 파싱해서 반환한다', async () => {
+    let receivedParams;
     const fakeClient = {
       messages: {
-        create: async () => ({
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              summary: 'AI 요약',
-              issues: [{ id: 'wrong_cred', severity: 'critical', title: 'x', description: 'y', autoFixable: true, fixType: 'auto' }],
-              recoveryPlan: ['wrong_cred'],
-            }),
-          }],
-        }),
+        create: async (params) => {
+          receivedParams = params;
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                summary: 'AI 요약',
+                issues: [{ id: 'wrong_cred', severity: 'critical', title: 'x', description: 'y', autoFixable: true, fixType: 'auto' }],
+                recoveryPlan: ['wrong_cred'],
+              }),
+            }],
+          };
+        },
       },
     };
     const result = await runDiagnose(okScanResult, {
@@ -50,6 +54,10 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
     // AI 응답에 context가 없어도 scanResult로부터 만든 기본 _context가 채워진다
     expect(result._context.targetAccount).toBe('tester');
     expect(result._context.targetEmail).toBe('tester@example.com');
+    // 회귀 방지: thinking이 켜져 있으면 그 토큰도 max_tokens 예산에서 차감돼 응답이 잘리는
+    // 실제 사고가 있었음 — 명시적으로 꺼서 보내는지 확인.
+    expect(receivedParams.thinking).toEqual({ type: 'disabled' });
+    expect(receivedParams.max_tokens).toBe(2048);
   });
 
   it('AI가 context(correctOrigin 등)를 함께 반환하면 기본값보다 우선 적용한다', async () => {
