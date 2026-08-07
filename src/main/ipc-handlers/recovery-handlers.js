@@ -13,15 +13,21 @@ function registerRecoveryHandlers(ipcMain) {
 
     // 복구 히스토리 기록 (SCR-08, docs/04 §4-3) — steps 안 메시지는 계정명/URL 등 비민감 정보만
     // 담는다는 기존 불변식을 그대로 신뢰한다(각 스텝 파일이 지켜야 할 규칙, docs/04 §4-3 경고 참고).
-    appStore.addRecoveryHistoryEntry({
-      id: randomUUID(),
-      projectPath: plan.context?.projectPath ?? null,
-      startedAt,
-      finishedAt: new Date().toISOString(),
-      ok: result.ok,
-      summary: result.ok ? '전체 성공' : `${result.failedStep}에서 중단: ${result.error}`,
-      steps: result.results,
-    });
+    // 기록 실패가 복구 결과 자체를 사용자에게 못 돌려주는 원인이 되면 안 된다 (scan-handlers.js와
+    // 동일한 이유로 감쌈 — electron-store ESM import 버그 재발 방지).
+    try {
+      appStore.addRecoveryHistoryEntry({
+        id: randomUUID(),
+        projectPath: plan.context?.projectPath ?? null,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        ok: result.ok,
+        summary: result.ok ? '전체 성공' : `${result.failedStep}에서 중단: ${result.error}`,
+        steps: result.results,
+      });
+    } catch (e) {
+      console.warn('복구 히스토리 기록 실패:', e.message);
+    }
 
     return result;
   });

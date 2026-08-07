@@ -349,6 +349,21 @@
     실제 keytar/electron-store 미접근). 총 124개 테스트 통과. 브라우저에서 4개 화면 전부(최근
     프로젝트 클릭, origin 프로토콜 전환, 히스토리 아코디언, API 키 저장+알림 토글) 실제 클릭 확인.
 
+- [x] **"프로젝트 선택" 최근 목록이 저장 안 되던 버그 (2026-08-07, 사용자가 실사용 중 발견).**
+  근본 원인: `electron-store` v9+는 순수 ESM 패키지(`package.json` `"type":"module"`)인데 이
+  프로젝트는 CommonJS라, `app-store.js`에서 `require('electron-store')`로 받으면 `Store` 클래스가
+  아니라 `{ __esModule, default: Store }` 래퍼 객체가 나옴. `new nodeElectronStore(...)`가
+  "is not a constructor"로 던지는데, 이걸 `DIAGNOSE_RUN`/`RECOVER_RUN` 핸들러가 감싸지 않고 있어서
+  진단/복구 결과 자체를 렌더러에 못 돌려주는 핸들러 실패로 이어질 수 있었음(설계상 부가 기능이
+  핵심 기능을 망가뜨리는 구조적 취약점). **조치**: `require('electron-store').default`로 명시적
+  언랩(§ `app-store.js` 상단 주석에 이유 기록), `addRecentProject`/`addRecoveryHistoryEntry` 호출을
+  각각 try/catch로 감싸 기록 실패가 진단/복구 결과 반환을 막지 않도록 방어. 회귀 테스트 추가
+  (`app-store.test.js` — 실제 `electron-store` 모듈을 격리된 임시 디렉터리로 로드해 생성자가
+  진짜 동작하는지 확인, 실제 사용자 설정 경로는 미접근). 총 125개 테스트 통과.
+  > ⚠️ 정확히 재현하려면: 이 프로젝트처럼 `"type":"commonjs"`인 곳에서 ESM 전용 패키지를 plain
+  > `require()`로 쓸 때는 항상 `.default` 언랩 여부를 직접 확인할 것 — Node 22+는 조용히 래퍼
+  > 객체를 반환해서(에러조차 안 남) 눈치채기 특히 어려움.
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)

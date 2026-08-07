@@ -51,3 +51,27 @@ describe('app-store (electron-store 래퍼, 실제 디스크 미접근)', () => 
     expect(getSettings({ store })).toEqual({ notificationsEnabled: true, someOtherKey: 'x' });
   });
 });
+
+// 회귀 테스트 (실사용 중 발견): electron-store v9+는 순수 ESM이라 plain require()로 받으면
+// { default: Store } 래퍼가 나오고, .default를 안 꺼내면 "is not a constructor"로 조용히 실패해서
+// 최근 프로젝트/복구 히스토리가 매번 저장 안 되는 버그가 됐었다. 여기서만 실제 electron-store
+// 모듈을 쓰되, 진짜 사용자 설정 경로(~/Library/Application Support/...)가 아니라 격리된 임시
+// 디렉터리(cwd)를 써서 실제 앱 데이터는 절대 건드리지 않는다.
+describe('app-store (electron-store 실제 모듈 로딩 회귀 테스트, 임시 디렉터리만 사용)', () => {
+  it('require("electron-store")에서 실제로 생성 가능한 Store 클래스를 가져온다', () => {
+    const Store = require('electron-store').default;
+    expect(typeof Store).toBe('function');
+
+    const os = require('os');
+    const path = require('path');
+    const fs = require('fs');
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gh-doctor-store-test-'));
+    try {
+      const store = new Store({ cwd: tmpDir, defaults: { recentProjects: [] } });
+      store.set('recentProjects', [{ path: '/tmp/fake' }]);
+      expect(store.get('recentProjects')).toEqual([{ path: '/tmp/fake' }]);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+});
