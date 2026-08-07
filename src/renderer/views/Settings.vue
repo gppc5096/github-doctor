@@ -17,7 +17,7 @@
       <h3>🔔 알림</h3>
       <label>
         <input type="checkbox" :checked="settingsStore.settings.notificationsEnabled" @change="onToggleNotifications" />
-        복구 완료 시 알림 (준비 중 — 값만 저장되고 아직 실제 알림은 뜨지 않습니다)
+        복구 완료 시 알림 (자동 복구가 끝나면 macOS 알림센터/Windows 토스트로 결과를 알려줍니다)
       </label>
     </div>
   </div>
