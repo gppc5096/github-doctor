@@ -64,10 +64,12 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
 
   it('AI가 정상 JSON을 반환하면 그대로 파싱해서 반환한다', async () => {
     let receivedParams;
+    let receivedOptions;
     const fakeClient = {
       messages: {
-        create: async (params) => {
+        create: async (params, options) => {
           receivedParams = params;
+          receivedOptions = options;
           return {
             content: [{
               type: 'text',
@@ -95,6 +97,33 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
     // 실제 사고가 있었음 — 명시적으로 꺼서 보내는지 확인.
     expect(receivedParams.thinking).toEqual({ type: 'disabled' });
     expect(receivedParams.max_tokens).toBe(2048);
+    // 회귀 방지: 응답이 느리거나 멈추면 화면이 "진단 중..."에 무한정 머무는 문제가 있었음 —
+    // 공식 SDK 문서(RequestOptions.timeout, ms)로 확인한 per-request 타임아웃이 걸려있는지 확인.
+    expect(receivedOptions.timeout).toBe(15000);
+  });
+
+  // v1.2 (2026-08-08, 사용자 요청): "프로젝트 선택"에서 AI 모드일 때 대시보드로 자동 이동하지
+  // 않는 것처럼 보이는 문제 — AI 호출이 멈춰도 타임아웃 없이는 영원히 대기하기 때문.
+  // 실제 타임아웃 동작(느린 응답 → 규칙 기반 폴백)을 시뮬레이션해서 검증한다.
+  it('AI 응답이 타임아웃되면(느린 응답) 규칙 기반으로 폴백한다', async () => {
+    const fakeClient = {
+      messages: {
+        create: async (params, options) => {
+          // 실제 SDK의 timeout 동작을 흉내: options.timeout이 지정돼 있으면 그보다 느린 응답은
+          // 타임아웃 에러로 거부된다고 가정하고 시뮬레이션한다.
+          if (options?.timeout) {
+            throw new Error(`Request timed out after ${options.timeout}ms`);
+          }
+          return { content: [{ type: 'text', text: '{"summary":"ok","issues":[],"recoveryPlan":[]}' }] };
+        },
+      },
+    };
+    const result = await runDiagnose(okScanResult, {
+      getAiKey: async () => 'fake-key',
+      createClient: () => fakeClient,
+    });
+    expect(result.source).toBe('rule');
+    expect(result._aiFallbackReason).toContain('timed out');
   });
 
   it('AI가 context(correctOrigin 등)를 함께 반환하면 기본값보다 우선 적용한다', async () => {

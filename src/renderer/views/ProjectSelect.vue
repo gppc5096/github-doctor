@@ -4,7 +4,9 @@
 
     <PathBar v-model="path" @confirm="onSelect" />
 
-    <div class="card">
+    <p v-if="isProcessing" class="hint">🔄 스캔 및 진단 중... (AI 진단은 최대 몇 초 정도 걸릴 수 있습니다)</p>
+
+    <div class="card" :style="isProcessing ? { opacity: 0.6, pointerEvents: 'none' } : {}">
       <h3>🕓 최근 프로젝트</h3>
       <p v-if="!projectsStore.recentProjects.length">최근 스캔한 프로젝트가 없습니다.</p>
       <ul v-else class="scan-list">
@@ -61,6 +63,8 @@ const projectsStore = useProjectsStore();
 const path = ref('');
 const pendingDelete = ref(null); // 삭제 확인 대기 중인 프로젝트 경로 (null이면 모달 숨김)
 const memoDrafts = reactive({}); // path → 입력 중인 메모 (저장된 값과 별개로 편집 중 상태 유지)
+// AI 진단은 네트워크 호출이라 몇 초 걸릴 수 있음 — 그동안 클릭해도 반응이 없어 보이는 문제(버그 리포트) 방지용 로딩 상태.
+const isProcessing = ref(false);
 
 onMounted(async () => {
   await projectsStore.load();
@@ -106,10 +110,16 @@ function timeAgo(iso) {
 }
 
 async function onSelect(selectedPath) {
-  await scanStore.runScan(selectedPath);
-  if (scanStore.scanResult && !scanStore.scanResult.error) {
-    await diagStore.runDiagnose(scanStore.scanResult);
+  if (isProcessing.value) return; // 처리 중 중복 클릭 방지
+  isProcessing.value = true;
+  try {
+    await scanStore.runScan(selectedPath);
+    if (scanStore.scanResult && !scanStore.scanResult.error) {
+      await diagStore.runDiagnose(scanStore.scanResult);
+    }
+    router.push('/');
+  } finally {
+    isProcessing.value = false;
   }
-  router.push('/');
 }
 </script>

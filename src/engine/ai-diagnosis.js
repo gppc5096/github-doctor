@@ -5,6 +5,10 @@ const { getAiKey: defaultGetAiKey } = require('./ai-key-store');
 const appStore = require('./app-store');
 
 const DEFAULT_MODEL = 'claude-sonnet-5'; // 공식 SDK 문서(anthropic-sdk-typescript) 예제와 대조해 확인 완료 (2026-08-07)
+// 응답이 느리거나 멈추면(네트워크 문제 등) 규칙 기반 폴백으로 넘어가지 못하고 화면이 무한정
+// "진단 중..."에 머무는 문제가 있었다 — 공식 문서 확인(RequestOptions.timeout, ms 단위)한
+// per-request 타임아웃을 걸어 반드시 catch 블록으로 넘어가게 한다.
+const DEFAULT_TIMEOUT_MS = 15000;
 
 // deps로 API 키 조회 함수/설정 조회 함수/클라이언트 생성 함수/모델명을 주입받을 수 있다.
 // 기본값은 실제 keytar 조회(.env 폴백 포함, docs/04 §5-2)와 실제 Anthropic SDK이며, 테스트는
@@ -43,16 +47,19 @@ async function runDiagnose(scanResult, deps = {}) {
   try {
     const client = createClient(apiKey);
     const prompt = buildPrompt(scanResult);
-    const msg = await client.messages.create({
-      model,
-      max_tokens: 2048,
-      // 이 작업은 정해진 형식의 JSON을 만드는 단순 작업이라 확장 사고가 필요 없다 — 무엇보다
-      // thinking에 쓴 토큰도 max_tokens 예산에서 함께 차감돼(공식 문서 확인: "counts towards
-      // your max_tokens limit"), 응답이 중간에 잘려 JSON 파싱이 깨지는 실제 사고가 있었다.
-      // 명시적으로 꺼서 예산을 전부 응답에 쓰게 한다.
-      thinking: { type: 'disabled' },
-      messages: [{ role: 'user', content: prompt }],
-    });
+    const msg = await client.messages.create(
+      {
+        model,
+        max_tokens: 2048,
+        // 이 작업은 정해진 형식의 JSON을 만드는 단순 작업이라 확장 사고가 필요 없다 — 무엇보다
+        // thinking에 쓴 토큰도 max_tokens 예산에서 함께 차감돼(공식 문서 확인: "counts towards
+        // your max_tokens limit"), 응답이 중간에 잘려 JSON 파싱이 깨지는 실제 사고가 있었다.
+        // 명시적으로 꺼서 예산을 전부 응답에 쓰게 한다.
+        thinking: { type: 'disabled' },
+        messages: [{ role: 'user', content: prompt }],
+      },
+      { timeout: DEFAULT_TIMEOUT_MS },
+    );
     // content[0]을 무조건 텍스트로 가정하면 안 된다 — 확장 사고가 다시 켜지는 경우(모델 기본값
     // 변경 등)에 대비해 방어적으로 유지한다. type이 'text'인 블록을 찾아서 쓴다.
     const textBlock = msg.content.find((block) => block.type === 'text');
