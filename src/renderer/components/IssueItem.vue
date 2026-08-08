@@ -17,17 +17,26 @@
         {{ issue.action.label }}
       </button>
       <template v-else-if="issue.action.type === 'input'">
-        <input v-model="inputValue" :placeholder="issue.action.placeholder" />
-        <button :disabled="!inputValue || busy" @click="handleInputApply">
+        <input v-model="inputValue" :placeholder="issue.action.placeholder" :disabled="busy || !!actionSuccess" />
+        <button :disabled="!inputValue || busy || !!actionSuccess" @click="handleInputApply">
           {{ busy ? '처리 중...' : issue.action.label }}
         </button>
       </template>
       <template v-else-if="issue.action.type === 'choice'">
-        <button v-for="opt in issue.action.options" :key="opt.value" :disabled="busy" @click="handleChoice(opt.value)">
+        <button
+          v-for="opt in issue.action.options"
+          :key="opt.value"
+          :disabled="busy || !!actionSuccess"
+          @click="handleChoice(opt.value)"
+        >
           {{ busy ? '처리 중...' : opt.label }}
         </button>
       </template>
     </div>
+    <!-- 클릭 즉시 실제로 실행되는데도 아무 피드백이 없어 "눌러도 아무 반응 없다"는 오해가
+         생겼던 문제(2026-08-08, 사용자 리포트) — 재스캔으로 카드가 사라지기 전 잠깐이라도
+         결과를 눈으로 확인할 수 있게 성공 메시지를 보여준 뒤 재스캔한다. -->
+    <p v-if="actionSuccess" class="severity-ok">✅ {{ actionSuccess }} (곧 다시 스캔합니다...)</p>
     <p v-if="actionError" class="severity-critical">{{ actionError }}</p>
   </div>
 </template>
@@ -53,6 +62,7 @@ const recoveryStore = useRecoveryStore();
 const inputValue = ref('');
 const busy = ref(false);
 const actionError = ref('');
+const actionSuccess = ref('');
 
 const severityLabel = computed(
   () => ({ critical: 'Critical', warning: 'Warning', info: 'Info' })[props.issue.severity] ?? props.issue.severity
@@ -69,14 +79,20 @@ function handleNavigate() {
 // input/choice 둘 다 "값 하나를 스텝 컨텍스트로 넘겨 즉석 실행"이라 공통 로직을 공유한다.
 async function applyStep(value) {
   actionError.value = '';
+  actionSuccess.value = '';
   busy.value = true;
   try {
     const { step, contextKey } = props.issue.action;
-    await recoveryStore.runStep(step, {
+    const result = await recoveryStore.runStep(step, {
       [contextKey]: value,
       projectPath: scanStore.projectPath,
     });
-    emit('rescan'); // 상태가 바뀌었으니 다시 스캔해서 최신 결과를 보여준다
+    // 재스캔하면 이 카드가 통째로 사라질 수 있어(문제가 해결되면 목록에서 빠짐), 결과를 잠깐
+    // 보여준 뒤에 재스캔한다 — 클릭 즉시 실행되는데도 아무 반응이 없어 보였던 문제 방지.
+    // recoveryStore.runStep은 runRecovery()의 전체 결과({ok, results:[{stepId, message, ...}]})를
+    // 그대로 반환하므로, 실행한 단일 스텝의 메시지는 results[0]에 들어있다.
+    actionSuccess.value = result?.results?.[0]?.message || '적용했습니다.';
+    setTimeout(() => emit('rescan'), 1500);
   } catch (e) {
     actionError.value = e.message;
   } finally {

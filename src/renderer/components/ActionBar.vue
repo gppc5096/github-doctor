@@ -8,6 +8,11 @@
       <button v-if="status === 'running'" @click="$emit('abort')">중단</button>
       <button v-else :disabled="!canStart" @click="$emit('start')">자동 복구 계속 ▶</button>
     </div>
+    <!-- 자동으로 처리 가능한 항목이 없어 비활성화된 상태를 "먹통"으로 오해하지 않게 안내
+         (2026-08-08, 사용자 리포트: 왜 비활성화됐는지 알 수 없어 혼란스러웠음). -->
+    <p v-if="!canStart && status === 'idle'" class="hint">
+      자동으로 처리 가능한 항목이 없습니다 — 위 진단 결과의 안내(선택/입력 버튼)를 먼저 따라 문제를 해결하세요.
+    </p>
     <!-- v1.0: push 실패 등 원인이 분류된 경우, 뭉뚱그린 에러 문구 대신 다음 행동을 보여준다
          (진단 이슈와 같은 shape이라 IssueItem.vue를 그대로 재사용) -->
     <IssueItem v-if="status === 'error' && errorIssue" :issue="errorIssue" @rescan="$emit('rescan')" />
