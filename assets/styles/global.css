@@ -360,6 +360,34 @@ body {
 .severity-warning { color: #facc15; }
 .severity-critical { color: #f87171; }
 
+.action-success {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  background: #10241c;
+  border-radius: 6px;
+}
+.action-success .severity-ok {
+  font-size: 12px;
+}
+.close-icon {
+  background: transparent;
+  border: none;
+  color: #8888a0;
+  font-size: 13px;
+  line-height: 1;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.close-icon:hover {
+  background: #2a2a3a;
+  color: #fff;
+}
+
 .action-bar {
   display: flex;
   flex-direction: column;

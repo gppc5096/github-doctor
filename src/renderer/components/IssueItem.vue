@@ -34,9 +34,14 @@
       </template>
     </div>
     <!-- 클릭 즉시 실제로 실행되는데도 아무 피드백이 없어 "눌러도 아무 반응 없다"는 오해가
-         생겼던 문제(2026-08-08, 사용자 리포트) — 재스캔으로 카드가 사라지기 전 잠깐이라도
-         결과를 눈으로 확인할 수 있게 성공 메시지를 보여준 뒤 재스캔한다. -->
-    <p v-if="actionSuccess" class="severity-ok">✅ {{ actionSuccess }} (곧 다시 스캔합니다...)</p>
+         생겼던 문제(2026-08-08, 사용자 리포트) — 재스캔으로 카드가 사라지기 전에 결과를 눈으로
+         확인할 수 있게 성공 메시지를 보여준다. 자동으로 사라지게 하면 사용자가 다 읽기 전에
+         지나갈 수 있어(2026-08-08 추가 요청), 사용자가 직접 닫을 때까지 유지하고 닫는 시점에
+         재스캔한다. -->
+    <div v-if="actionSuccess" class="action-success">
+      <span class="severity-ok">✅ {{ actionSuccess }}</span>
+      <button class="close-icon" aria-label="닫기" @click="dismissSuccess">✕</button>
+    </div>
     <p v-if="actionError" class="severity-critical">{{ actionError }}</p>
   </div>
 </template>
@@ -87,17 +92,21 @@ async function applyStep(value) {
       [contextKey]: value,
       projectPath: scanStore.projectPath,
     });
-    // 재스캔하면 이 카드가 통째로 사라질 수 있어(문제가 해결되면 목록에서 빠짐), 결과를 잠깐
-    // 보여준 뒤에 재스캔한다 — 클릭 즉시 실행되는데도 아무 반응이 없어 보였던 문제 방지.
+    // 재스캔하면 이 카드가 통째로 사라질 수 있어(문제가 해결되면 목록에서 빠짐), 사용자가
+    // 직접 닫기 전까지는 재스캔하지 않고 결과를 그대로 유지한다(dismissSuccess 참고).
     // recoveryStore.runStep은 runRecovery()의 전체 결과({ok, results:[{stepId, message, ...}]})를
     // 그대로 반환하므로, 실행한 단일 스텝의 메시지는 results[0]에 들어있다.
     actionSuccess.value = result?.results?.[0]?.message || '적용했습니다.';
-    setTimeout(() => emit('rescan'), 1500);
   } catch (e) {
     actionError.value = e.message;
   } finally {
     busy.value = false;
   }
+}
+
+function dismissSuccess() {
+  actionSuccess.value = '';
+  emit('rescan'); // 메시지를 다 확인했다는 뜻이므로 이 시점에 최신 상태로 재스캔한다
 }
 
 const handleInputApply = () => applyStep(inputValue.value);

@@ -12,7 +12,7 @@ function checkOriginChoice(items, ctx) {
   return {
     id: 'origin_choice', severity: 'info',
     title: 'SSH와 HTTPS 인증정보가 모두 있습니다',
-    description: `현재 origin은 ${items.origin.protocol}입니다. 두 방식 모두 사용 가능한 상태라 자동으로 고를 수 없습니다 — 아래 버튼을 누르면 그 즉시 origin 주소가 해당 방식으로 변경되고 다시 스캔합니다 (아래 "자동 복구 계속"과는 별개로, 이 카드에서 바로 실행됩니다).`,
+    description: `현재 origin은 ${items.origin.protocol}입니다. 두 방식 모두 사용 가능한 상태라 자동으로 고를 수 없습니다 — 아래 버튼을 누르면 그 즉시 origin 주소가 해당 방식으로 변경됩니다 (아래 "자동 복구 계속"과는 별개로, 이 카드에서 바로 실행됩니다). 완료 메시지를 확인한 뒤 닫으면 다시 스캔합니다.`,
     autoFixable: false, fixType: 'guide',
     action: {
       type: 'choice', label: '방식 선택',
