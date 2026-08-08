@@ -236,4 +236,43 @@ describe('ai-diagnosis.runDiagnose (DI로 실제 Anthropic API 완전 차단)', 
     expect(result.source).toBe('ai');
     expect(result.summary).toBe('ok');
   });
+
+  // 회귀 방지 (2026-08-08, 실사용 중 발견): AI가 실제로 존재하지 않는 복구 스텝 id를
+  // recoveryPlan에 지어내 넣으면(예: "ssh_agent_not_running" — ssh-agent는 안내만 있고
+  // 자동 실행 스텝이 없음), 사용자가 "자동 복구 계속"을 누르는 순간 getStep()이
+  // "알 수 없는 복구 단계" 에러를 던져 전체 복구가 중단됐다. 프롬프트로 안내해도 모델이
+  // 지어낼 수 있으니 파싱 단계에서 한 번 더 걸러내는지 확인한다.
+  it('AI가 존재하지 않는 스텝 id를 recoveryPlan에 지어내면 걸러내고 해당 issue는 autoFixable을 false로 내린다', async () => {
+    const fakeClient = {
+      messages: {
+        create: async () => ({
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              summary: '2가지 문제를 발견했습니다.',
+              issues: [
+                { id: 'ssh_agent_not_running', severity: 'warning', title: 'SSH 에이전트 미실행', description: 'x', autoFixable: true, fixType: 'auto' },
+                { id: 'wrong_cred', severity: 'critical', title: 'y', description: 'z', autoFixable: true, fixType: 'auto' },
+              ],
+              recoveryPlan: ['ssh_agent_not_running', 'wrong_cred'],
+            }),
+          }],
+        }),
+      },
+    };
+    const result = await runDiagnose(okScanResult, {
+      getAiKey: async () => 'fake-key',
+      createClient: () => fakeClient,
+    });
+    expect(result.source).toBe('ai');
+    // 실제 존재하는 스텝(wrong_cred)만 recoveryPlan에 남는다.
+    expect(result.recoveryPlan).toEqual(['wrong_cred']);
+    // recoveryPlan에서 빠진 issue는 autoFixable이 강제로 false가 되어 "자동 복구 계속"이 건드리지 않는다.
+    const sshIssue = result.issues.find((i) => i.id === 'ssh_agent_not_running');
+    expect(sshIssue.autoFixable).toBe(false);
+    // 카드 자체는 그대로 보여준다(안내 목적).
+    expect(sshIssue).toBeDefined();
+    const credIssue = result.issues.find((i) => i.id === 'wrong_cred');
+    expect(credIssue.autoFixable).toBe(true);
+  });
 });

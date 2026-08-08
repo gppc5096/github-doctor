@@ -609,6 +609,24 @@
   패키징된 앱에는 안 뜬다고 Electron이 직접 알려주는 정상 경고라 조치 불필요.) 로직 변경이
   아니라 Electron 부트스트랩 코드 한 줄 제거라 테스트 영향 없음 — 145개 테스트 통과.
 
+- [x] **AI 진단 모드에서 "자동 복구 계속" 클릭 시 "복구 중 오류 발생 — 알 수 없는 복구 단계:
+  ssh_agent_not_running" (2026-08-08, 사용자 리포트, 스크린샷 첨부).** ssh-agent는
+  스캔 항목의 hover 안내 툴팁만 구현돼 있고 규칙 엔진에도 복구 스텝 레지스트리
+  (`step-registry.js`)에도 `ssh_agent_not_running`이라는 id는 존재하지 않음 — 규칙 기반은
+  애초에 이 이슈를 만들지 않으니 안 터지지만, **AI 진단은 자유 형식이라 이 id를 스스로
+  지어내 `autoFixable:true`로 `recoveryPlan`에 넣었고**, 복구 엔진이 검증 없이 그대로
+  실행하려다 `getStep()`이 "알 수 없는 복구 단계" 에러를 던져 전체 복구가 중단됨. 근본
+  원인은 `ai-diagnosis.js`의 프롬프트가 "실제로 실행 가능한 스텝 id 목록"을 모델에게 전혀
+  알려주지 않았던 것. **조치(2단 방어)**: ① `step-registry.js`가 `Object.keys(registry)`로
+  `validStepIds`를 export해서 유일한 출처(source of truth)로 삼음. ② `ai-diagnosis.js`의
+  프롬프트에 이 목록을 명시하고 "목록에 없는 문제는 autoFixable:false, fixType은
+  semi/guide로만 표시하라"고 지시. ③ 프롬프트를 지켜도 모델이 지어낼 수 있으니
+  `parseAIResponse()`에서 실행 직전에 한 번 더 필터링 — `recoveryPlan`은 `validStepIds`에
+  실제로 있는 id만 남기고, 거기서 빠진 issue는 `autoFixable`을 강제로 `false`로 내려
+  "자동 복구 계속"이 절대 건드리지 않게 함(카드 자체는 안내 목적으로 그대로 보여줌). 단위
+  테스트 1개 추가(AI가 존재하지 않는 id를 지어내는 상황을 직접 시뮬레이션해 걸러지는지
+  확인) — 총 146개 테스트 통과.
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)

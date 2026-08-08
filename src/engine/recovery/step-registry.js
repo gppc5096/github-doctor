@@ -17,4 +17,8 @@ function getStep(stepId) {
   return step;
 }
 
-module.exports = { getStep };
+// ai-diagnosis.js가 이 목록을 유일한 출처로 삼아, AI가 실제로 존재하지 않는 스텝 id를
+// recoveryPlan에 지어내 넣는 것을 막는다 (실사용 중 발견: ssh_agent_not_running 사례).
+const validStepIds = Object.keys(registry);
+
+module.exports = { getStep, validStepIds };

@@ -3,6 +3,7 @@ const { ruleDiagnose } = require('./diagnosis/rule-engine');
 const { buildRecoveryContext } = require('./recovery-context');
 const { getAiKey: defaultGetAiKey } = require('./ai-key-store');
 const appStore = require('./app-store');
+const { validStepIds } = require('./recovery/step-registry');
 
 const DEFAULT_MODEL = 'claude-sonnet-5'; // 공식 SDK 문서(anthropic-sdk-typescript) 예제와 대조해 확인 완료 (2026-08-07)
 // 응답이 느리거나 멈추면(네트워크 문제 등) 규칙 기반 폴백으로 넘어가지 못하고 화면이 무한정
@@ -103,7 +104,13 @@ ${JSON.stringify(scanResult.items, null, 2)}
     "targetAccount": "복구에 계정명이 필요하면 올바른 GitHub 계정명, 아니면 null",
     "targetEmail": "복구에 이메일이 필요하면 올바른 이메일, 아니면 null"
   }
-}`;
+}
+
+중요: recoveryPlan과 issue.id에 자동 실행 가능한 id로 쓸 수 있는 값은 아래 목록뿐입니다.
+이 목록에 없는 문제는 절대 recoveryPlan에 넣지 말고, 그 issue의 autoFixable은 반드시
+false, fixType은 "semi" 또는 "guide"로 표시하세요 (예: SSH 에이전트 미실행처럼 사용자가
+터미널에서 직접 실행해야 하는 조치는 자동 실행 스텝이 없으므로 guide로만 안내).
+사용 가능한 id: ${validStepIds.join(', ')}`;
 }
 
 // AI 응답 JSON 파싱 실패 시에도 규칙 기반으로 폴백한다 (parse 실패 = AI 진단 실패의 한 형태).
@@ -120,7 +127,16 @@ function parseAIResponse(raw, scanResult) {
     for (const [key, value] of Object.entries(aiContext || {})) {
       if (value !== null && value !== undefined) mergedContext[key] = value;
     }
-    return { source: 'ai', ...rest, _context: mergedContext };
+    // 프롬프트로 안내해도 AI가 실제로 없는 스텝 id를 지어내 recoveryPlan에 넣을 수 있다
+    // (실사용 중 발견: ssh_agent_not_running — 복구 실행 시점에 "알 수 없는 복구 단계"
+    // 에러로 전체 복구가 중단됐음). 실행 전에 한 번 더 걸러내 방어한다: recoveryPlan은
+    // 실제 존재하는 스텝 id만 남기고, 거기서 빠진 issue는 autoFixable을 강제로 false로
+    // 내려서 "자동 복구 계속"이 실행하지 않을 issue로 만든다(카드 자체는 그대로 보여줌).
+    const safeRecoveryPlan = (rest.recoveryPlan || []).filter((id) => validStepIds.includes(id));
+    const safeIssues = (rest.issues || []).map((issue) =>
+      safeRecoveryPlan.includes(issue.id) ? issue : { ...issue, autoFixable: false }
+    );
+    return { source: 'ai', ...rest, issues: safeIssues, recoveryPlan: safeRecoveryPlan, _context: mergedContext };
   } catch (e) {
     console.warn('AI 응답 JSON 파싱 실패, 규칙 기반으로 전환:', e.message);
     return { ...ruleDiagnose(scanResult), _aiFallbackReason: `AI 응답 파싱 실패: ${e.message}` };
