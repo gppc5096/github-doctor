@@ -99,6 +99,6 @@ describe('통합: 스캔 → 진단 → 복구 → push (전부 fake, 실제 환
 
     const diagnosis = ruleDiagnose(scanResult);
     expect(diagnosis.recoveryPlan).toEqual([]);
-    expect(diagnosis.summary).toBe('발견된 문제가 없습니다. push를 진행하세요.');
+    expect(diagnosis.summary).toBe('발견된 문제를 모두 해결했습니다. push를 진행하세요.');
   });
 });

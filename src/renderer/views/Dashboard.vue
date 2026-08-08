@@ -1,10 +1,6 @@
 <template>
   <div class="dashboard">
-    <TopBar
-      title="진단 대시보드"
-      :badge-text="issueCount ? `문제 ${issueCount}건 발견` : ''"
-      badge-type="warning"
-    >
+    <TopBar title="진단 대시보드" :badge-text="badgeText" :badge-type="badgeType">
       <template #actions>
         <button :disabled="scanStore.isScanning || !scanStore.projectPath" @click="rescan">🔄 재스캔</button>
         <button disabled title="아직 구현되지 않음">📄 리포트</button>
@@ -60,6 +56,13 @@ const diagStore = useDiagnosisStore();
 const recoveryStore = useRecoveryStore();
 
 const issueCount = computed(() => diagStore.diagnosis?.issues?.length ?? 0);
+// 진단 전엔 뱃지를 아예 숨기고, 진단 후 문제가 0건이면 "없음"을 명시적으로 보여준다 — 이전엔
+// 0건일 때 뱃지를 통째로 숨겨서, 방금 해결됐는데도 아무 변화가 없어 보였다(2026-08-08 사용자 리포트).
+const badgeText = computed(() => {
+  if (!diagStore.diagnosis) return '';
+  return issueCount.value > 0 ? `문제 ${issueCount.value}건 발견` : '발견된 문제 없음';
+});
+const badgeType = computed(() => (issueCount.value > 0 ? 'warning' : 'ok'));
 
 async function startScan(path) {
   await scanStore.runScan(path);

@@ -32,7 +32,7 @@ function ruleDiagnose(scanResult) {
 
   const summary =
     issues.length === 0
-      ? '발견된 문제가 없습니다. push를 진행하세요.'
+      ? '발견된 문제를 모두 해결했습니다. push를 진행하세요.'
       : `총 ${issues.length}가지 문제를 발견했습니다.`;
 
   return {
