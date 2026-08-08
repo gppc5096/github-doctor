@@ -29,11 +29,17 @@ function ruleDiagnose(scanResult) {
   // "고치는 데 필요한 값"이 항상 같은 계산에서 나오도록 하기 위함 (v1.0, _context 작업).
   const ctx = buildRecoveryContext(scanResult);
   const issues = rules.map((rule) => rule(items, ctx)).filter(Boolean);
+  // origin_choice(v1.1)처럼 severity:'info'인 항목은 "고장난 것"이 아니라 "참고용 선택지"다 —
+  // SSH/HTTPS 인증정보가 둘 다 있는 한 어느 쪽을 고르든 이 안내는 항상 다시 나타나므로(정상
+  // 동작), "문제 건수"에 포함시키면 사용자가 아무리 골라도 "문제 해결됨"이 절대 뜨지 않는
+  // 것처럼 보였다(2026-08-08, 사용자 리포트). 카드 자체는 계속 보여주되(issues에는 그대로
+  // 포함), 건수 집계에서는 제외한다.
+  const problemCount = issues.filter((i) => i.severity !== 'info').length;
 
   const summary =
-    issues.length === 0
+    problemCount === 0
       ? '발견된 문제를 모두 해결했습니다. push를 진행하세요.'
-      : `총 ${issues.length}가지 문제를 발견했습니다.`;
+      : `총 ${problemCount}가지 문제를 발견했습니다.`;
 
   return {
     source: 'rule',

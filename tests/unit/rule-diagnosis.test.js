@@ -218,6 +218,29 @@ describe('규칙 기반 진단 엔진', () => {
     expect(result.recoveryPlan).not.toContain('origin_choice');
   });
 
+  // 회귀 방지 (2026-08-08, 실사용 중 발견): origin_choice는 SSH/HTTPS 인증정보가 둘 다
+  // 있는 한 어느 쪽을 고르든 항상 다시 뜬다(설계상 정상 동작) — 이걸 summary의 "문제 건수"에
+  // 포함시키면 사용자가 아무리 선택해도 절대 "문제 없음"이 뜨지 않는 것처럼 보였다.
+  it('규칙 10: origin_choice만 있으면(severity:info) summary는 "문제 없음"으로 취급한다', () => {
+    const scanResult = {
+      items: {
+        gitInstalled: { ok: true },
+        storedCreds: [{ account: 'gppc5096', isWrong: false }],
+        sshKeys: [{ file: 'id_ed25519.pub', isDSA: false }],
+        origin: { value: 'git@github.com:gppc5096/repo.git', protocol: 'SSH' },
+        credHelper: { ok: true },
+        githubConn: { ok: true },
+        userName: { active: 'gppc5096' },
+        userEmail: { active: 'tester@example.com' },
+      },
+    };
+    const result = ruleDiagnose(scanResult);
+    // origin_choice 카드 자체는 여전히 보여준다(issues에는 포함) — 안내는 유효하므로.
+    expect(result.issues.find((i) => i.id === 'origin_choice')).toBeDefined();
+    // 하지만 "문제 건수"에는 안 세서, 골라도 절대 안 사라지는 것처럼 보이지 않게 한다.
+    expect(result.summary).toBe('발견된 문제를 모두 해결했습니다. push를 진행하세요.');
+  });
+
   it('규칙 10: 한쪽만 있으면(SSH만) origin_choice를 진단하지 않는다', () => {
     const scanResult = {
       items: {

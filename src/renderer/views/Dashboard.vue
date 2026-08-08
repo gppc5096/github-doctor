@@ -55,7 +55,13 @@ const scanStore = useScanStore();
 const diagStore = useDiagnosisStore();
 const recoveryStore = useRecoveryStore();
 
-const issueCount = computed(() => diagStore.diagnosis?.issues?.length ?? 0);
+// origin_choice처럼 severity:'info'인 항목은 "참고용 선택지"라 SSH/HTTPS 인증정보가 둘 다
+// 있는 한 무엇을 고르든 항상 다시 나타난다(정상 동작) — 이걸 "문제"로 세면 아무리 선택해도
+// 절대 "문제 없음"이 뜨지 않아 뱃지가 안 바뀌는 것처럼 보였다(2026-08-08 사용자 리포트).
+// rule-engine의 problemCount 집계와 동일 기준으로 맞춘다.
+const issueCount = computed(
+  () => diagStore.diagnosis?.issues?.filter((i) => i.severity !== 'info').length ?? 0
+);
 // 진단 전엔 뱃지를 아예 숨기고, 진단 후 문제가 0건이면 "없음"을 명시적으로 보여준다 — 이전엔
 // 0건일 때 뱃지를 통째로 숨겨서, 방금 해결됐는데도 아무 변화가 없어 보였다(2026-08-08 사용자 리포트).
 const badgeText = computed(() => {
