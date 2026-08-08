@@ -22,7 +22,8 @@ mac:
 
 win:
   target: nsis
-  publisherName: "Bluebird"
+  signtoolOptions:
+    publisherName: "Bluebird"
 
 nsis:
   oneClick: false

@@ -627,6 +627,24 @@
   테스트 1개 추가(AI가 존재하지 않는 id를 지어내는 상황을 직접 시뮬레이션해 걸러지는지
   확인) — 총 146개 테스트 통과.
 
+- [x] **개인 테스트용 macOS 빌드 시도 중 발견한 electron-builder 설정 오류 2건 수정
+  (2026-08-08, 사용자 질문: "Apple Developer 인증서 없이 현재 맥북에서 테스트용 빌드가
+  가능한가?"에 답하려고 실제로 `electron-builder --mac --dir`을 실행해보다 발견).**
+  ① `package.json`의 `electron`이 `dependencies`에 있었음 — electron-builder는 이걸
+  금지한다("Package electron is only allowed in devDependencies") → `devDependencies`로
+  이동. ② `electron-builder.yml`의 `win.publisherName`이 잘못된 위치 — 공식 문서(context7)로
+  확인한 결과 설치된 v26.15.3 스키마에서는 `win.signtoolOptions.publisherName`이 맞는
+  위치(v27에서 추가된 `win.sign` 판별 유니온과 착각하기 쉬움, 버전에 맞는 스키마 확인 필요).
+  두 오류 다 서명과 무관하게 **모든** 빌드(`--mac`이든 `--win`이든)를 스키마 검증
+  단계에서 막고 있었음. 수정 후 `--mac --dir`로 실제 빌드 성공 확인 — 인증서가 없어 서명은
+  건너뛰었지만(경고만, 에러 아님) `.app`은 정상 생성됐고, 실제로 `open`으로 실행해서
+  Gatekeeper 경고 없이 바로 켜지는 것까지 확인(로컬에서 직접 빌드한 파일은
+  `com.apple.quarantine` 속성이 안 붙어서, 인터넷에서 받은 파일과 달리 Gatekeeper가
+  막지 않음 — 다른 기기로 옮기면 상황이 다를 수 있음, 그건 공증(notarization)이 필요한
+  영역). 개인 테스트 빌드 자체는 인증서 없이도 가능하다는 결론. 설정 파일 수정이라
+  테스트 영향 없음(146개 그대로 통과), `build/` 산출물은 `.gitignore`의 `release/`에
+  걸려 커밋 대상 아님.
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)
