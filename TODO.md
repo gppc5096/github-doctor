@@ -645,6 +645,19 @@
   테스트 영향 없음(146개 그대로 통과), `build/` 산출물은 `.gitignore`의 `release/`에
   걸려 커밋 대상 아님.
 
+- [x] **앱 아이콘 미설정 (2026-08-08, 사용자가 실제 빌드 로그의 "default Electron icon is
+  used" 경고를 보고 직접 발견).** `src/main/index.js`가 참조하는 `assets/icons/icon.png`도,
+  `electron-builder.yml`이 찾는 `build/icon.icns`/`build/icon.ico`도 실제로는 존재하지
+  않아 항상 Electron 기본 아이콘으로 대체되고 있었음 — 브랜드 자산이 아예 없던 상태라
+  코드로 해결할 수 없어 사용자에게 소스 이미지 제공 여부를 물어봄. 사용자가
+  `docs/GitHub_App_Icon.png`(1254×1254, "GitHub Doctor" 로고) 제공 → `sips`로 1024×1024
+  리사이즈해 `build/icon.png`(electron-builder 표준 마스터 아이콘 경로 — SVG/PNG 하나만
+  두면 mac(.icns)/win(.ico) 둘 다 빌드 시점에 자동 생성됨, 공식 문서로 확인)에 배치, 같은
+  이미지를 런타임 창 아이콘용 `assets/icons/icon.png`에도 복사. `--mac --dir`로 재빌드해
+  "default Electron icon is used" 경고가 사라지고 `Contents/Resources/icon.icns`가 실제
+  번들에 포함된 것, 앱이 정상 실행되는 것까지 확인. 설정/에셋 추가라 테스트 영향 없음
+  (146개 그대로 통과).
+
 ## 전체 로드맵 (docs/03 §12)
 
 - [x] v0.1 MVP — CLI 진단 엔진 완성 (4주)
